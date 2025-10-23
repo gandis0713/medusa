@@ -24,24 +24,27 @@ add_library(medusa STATIC
 # Set include directories
 target_include_directories(medusa
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE
-        ${Vulkan_INCLUDE_DIRS}
-        ${CMAKE_CURRENT_SOURCE_DIR}
+    ${Vulkan_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Link dependencies
 target_link_libraries(medusa
     PUBLIC
-        spdlog::spdlog
-        Vulkan::Headers
+    medusa::utils
+    spdlog::spdlog
+    Vulkan::Headers
 )
 
 # Set compile options
 target_compile_options(medusa
     PRIVATE
-        -Wall
-        -Werror
-        -Wno-unused-parameter
-        -Wno-unused-function
+    -Wall
+    -Werror
+    -Wno-unused-parameter
+    -Wno-unused-function
 )
+
+add_library(medusa::medusa ALIAS medusa)

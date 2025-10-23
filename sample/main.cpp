@@ -1,10 +1,10 @@
-#include <spdlog/spdlog.h>
-#include <vk_instance.hpp>
+#include "utils/log.hpp"
+#include "vk_instance.hpp"
 
 int main(int argc, char** argv)
 {
-    spdlog::info("=== Medusa Vulkan Driver Sample ===");
-    spdlog::info("Running on Raspberry Pi 5");
+    LOG_INFO("=== Medusa Vulkan Driver Sample ===");
+    LOG_INFO("Running on Raspberry Pi 5");
 
     // Create instance (avoid Most Vexing Parse)
     medusa::vk_instance instance;
@@ -16,6 +16,6 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    spdlog::info("Sample completed successfully");
+    LOG_INFO("Sample completed successfully");
     return 0;
 }

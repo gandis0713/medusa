@@ -18,26 +18,27 @@ add_executable(medusa_sample
 # Link medusa library
 target_link_libraries(medusa_sample
     PRIVATE
-        medusa
+    medusa::medusa
+    medusa::utils
 )
 
 # Set compile options
 if(APPLE)
     target_compile_options(medusa_sample
         PRIVATE
-            -Wall
-            -Werror
-            -Wno-unused-parameter
-            -Wno-unused-function
-            -Wno-unused-but-set-variable
-            -Wno-unused-variable
-            -fno-rtti
+        -Wall
+        -Werror
+        -Wno-unused-parameter
+        -Wno-unused-function
+        -Wno-unused-but-set-variable
+        -Wno-unused-variable
+        -fno-rtti
     )
 else()
     target_compile_options(medusa_sample
         PRIVATE
-            -Wall
-            -Wno-unused-parameter
-            -Wno-unused-function
+        -Wall
+        -Wno-unused-parameter
+        -Wno-unused-function
     )
 endif()

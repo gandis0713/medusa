@@ -1,23 +1,24 @@
 #include "vk_instance.hpp"
 
-#include <spdlog/spdlog.h>
+#include "utils/log.hpp"
 #include <stdexcept>
 
-namespace medusa {
+namespace medusa
+{
 
 vk_instance::vk_instance()
 {
-    spdlog::info("vk_instance created");
+    LOG_INFO("vk_instance created");
 }
 
 vk_instance::~vk_instance()
 {
-    spdlog::info("Destroying vk_instance");
+    LOG_INFO("Destroying vk_instance");
 }
 
 bool vk_instance::initialize()
 {
-    spdlog::info("Initializing Vulkan instance...");
+    LOG_INFO("Initializing Vulkan instance...");
     return true;
 }
 
