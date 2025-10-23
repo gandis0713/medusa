@@ -7,7 +7,10 @@ project(
   LANGUAGES CXX
 )
 
-# set compile options.
+# Set compile options
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Add subdirectories
+add_subdirectory(medusa)
 add_subdirectory(sample)

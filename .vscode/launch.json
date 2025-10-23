@@ -6,10 +6,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "[RPI5][arm64] Triangle",
+            "name": "[RPI5][arm64] Sample",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/arm64-rpi5-ninja/debug/sample/apps/triangle/triangle",
+            "program": "${workspaceFolder}/build/arm64-rpi5-ninja/debug/sample/medusa_sample/medusa_sample",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

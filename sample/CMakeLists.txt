@@ -6,23 +6,41 @@ project(
     DESCRIPTION "medusa sample"
     LANGUAGES CXX
 )
+
+# Collect source files
 file(GLOB_RECURSE srcs "*.cpp" "*.h")
 
+# Create executable
 add_executable(medusa_sample
     ${srcs}
 )
 
-if(APPLE)
-    target_compile_options(${target}
-        PUBLIC
-        -Wall
-        -Werror
-        -Wno-unused-parameter
-        -Wno-unused-function
-        -Wno-unused-but-set-variable
-        -Wno-unused-variable
+# Link medusa library
+target_link_libraries(medusa_sample
+    PRIVATE
+        medusa
+)
 
+# Set C++ standard
+target_compile_features(medusa_sample PRIVATE cxx_std_20)
+
+# Set compile options
+if(APPLE)
+    target_compile_options(medusa_sample
         PRIVATE
-        -fno-rtti # -fno-exceptions
+            -Wall
+            -Werror
+            -Wno-unused-parameter
+            -Wno-unused-function
+            -Wno-unused-but-set-variable
+            -Wno-unused-variable
+            -fno-rtti
+    )
+else()
+    target_compile_options(medusa_sample
+        PRIVATE
+            -Wall
+            -Wno-unused-parameter
+            -Wno-unused-function
     )
 endif()
