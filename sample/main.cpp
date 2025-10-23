@@ -1,5 +1,5 @@
 #include <spdlog/spdlog.h>
-#include <vk_instance.h>
+#include <vk_instance.hpp>
 
 int main(int argc, char** argv)
 {
