@@ -1,2 +1,2 @@
 # medusa
-vulkan driver
+vulkan driver for raspberry pi 5

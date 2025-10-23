@@ -1,0 +1,21 @@
+{
+  "name": "jipu",
+  "version-string": "0.0.1",
+  "dependencies": [
+    "gtest",
+    "glm",
+    "spdlog",
+    "sdl2",
+    "imgui",
+    "dawn",
+    "vulkan-headers",
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}

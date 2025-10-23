@@ -1,0 +1,20 @@
+{
+    /* Ref
+        https://go.microsoft.com/fwlink/?linkid=830387
+        https://code.visualstudio.com/docs/editor/variables-reference
+    */
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "[RPI5][x64] Triangle",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/x64-rpi5-ninja/debug/sample/apps/triangle/triangle",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "MIMode": "lldb",
+            "targetArchitecture": "arm64",
+        }
+    ]
+}
