@@ -8,7 +8,7 @@ project(
 )
 
 # Find dependencies
-find_package(Vulkan REQUIRED)
+find_package(VulkanHeaders CONFIG)
 find_package(spdlog CONFIG REQUIRED)
 
 # Collect source files
