@@ -1,0 +1,64 @@
+# Build directories
+build/
+build-*/
+build-output/
+install/
+out/
+
+# CMake cache
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+cmake-build-*/
+
+# vcpkg
+externals/
+.vcpkg/
+vcpkg_installed/
+
+# IDE files
+.vscode/
+.idea/
+.vs/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Temporary files
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Scripts (except the ones we need)
+scripts/
+!scripts/build/
+
+# Test output
+*.test
+test-results/
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz

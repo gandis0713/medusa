@@ -110,15 +110,9 @@
 			"configuration": "Release"
 		},
 		{
-			"name": "x64-osx-ninja-relinfo",
+			"name": "x64-rpi5-ninja-relinfo",
 			"inherits": "base",
-			"configurePreset": "x64-osx-ninja-relinfo",
-			"configuration": "RelWithDebInfo"
-		},
-		{
-			"name": "arm64-rpi5-xcode-relinfo",
-			"inherits": "base",
-			"configurePreset": "arm64-rpi5-xcode-relinfo",
+			"configurePreset": "x64-rpi5-ninja-relinfo",
 			"configuration": "RelWithDebInfo"
 		}
 	]

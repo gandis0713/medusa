@@ -1,5 +1,5 @@
 {
-  "name": "jipu",
+  "name": "medusa",
   "version-string": "0.0.1",
   "dependencies": [
     "gtest",
@@ -7,7 +7,6 @@
     "spdlog",
     "sdl2",
     "imgui",
-    "dawn",
     "vulkan-headers",
     {
       "name": "vcpkg-cmake",

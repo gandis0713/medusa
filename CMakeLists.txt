@@ -10,4 +10,4 @@ project(
 # set compile options.
 set(CMAKE_CXX_STANDARD 20)
 
-add_subdirectory(medusa)
+add_subdirectory(sample)
