@@ -1,5 +1,5 @@
-# Multi-stage Dockerfile for Raspberry Pi 5 (x64) compilation
-FROM --platform=linux/amd64 ubuntu:22.04 AS builder
+# Multi-stage Dockerfile for Raspberry Pi 5 (arm64) compilation
+FROM --platform=linux/arm64 ubuntu:22.04 AS builder
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -17,6 +17,13 @@ RUN apt-get update && apt-get install -y \
     ninja-build \
     python3 \
     python3-pip \
+    autoconf \
+    automake \
+    libtool \
+    m4 \
+    gperf \
+    bison \
+    flex \
     libx11-dev \
     libxrandr-dev \
     libxinerama-dev \
@@ -42,10 +49,12 @@ WORKDIR /opt
 RUN git clone https://github.com/Microsoft/vcpkg.git && \
     cd vcpkg && \
     ./bootstrap-vcpkg.sh && \
+    mkdir -p /opt/vcpkg/archives && \
     ln -s /opt/vcpkg/vcpkg /usr/local/bin/vcpkg
 
 ENV VCPKG_ROOT=/opt/vcpkg
 ENV PATH="${VCPKG_ROOT}:${PATH}"
+ENV VCPKG_DEFAULT_BINARY_CACHE="${VCPKG_ROOT}/archives"
 
 # Set working directory
 WORKDIR /workspace
@@ -55,14 +64,14 @@ COPY . .
 
 # Configure and build using CMake preset
 # Default to release build, can be overridden with --build-arg
-ARG BUILD_PRESET=x64-rpi5-ninja-release
+ARG BUILD_PRESET=arm64-rpi5-ninja-release
 RUN cmake --preset ${BUILD_PRESET}
 
 # Build the project
 RUN cmake --build --preset ${BUILD_PRESET} -j$(nproc)
 
 # Runtime stage (optional, for smaller final image)
-FROM --platform=linux/amd64 ubuntu:22.04 AS runtime
+FROM --platform=linux/arm64 ubuntu:22.04 AS runtime
 
 # Install only runtime dependencies
 RUN apt-get update && apt-get install -y \
@@ -77,11 +86,11 @@ RUN apt-get update && apt-get install -y \
 
 # Copy built artifacts from builder stage
 WORKDIR /app
-ARG BUILD_PRESET=x64-rpi5-ninja-release
+ARG BUILD_PRESET=arm64-rpi5-ninja-release
 COPY --from=builder /workspace/build ./build
 COPY --from=builder /workspace/install ./install
 
 # Set environment variables
-ENV LD_LIBRARY_PATH=/app/build:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/app/build
 
 CMD ["/bin/bash"]

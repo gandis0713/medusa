@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build script for Raspberry Pi 5 using Docker
-# This script builds the medusa project for x64 architecture
+# This script builds the medusa project for arm64 architecture
 
 set -e  # Exit on error
 
@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 # Default values
 IMAGE_NAME="medusa-rpi5-builder"
 IMAGE_TAG="latest"
-BUILD_PRESET="x64-rpi5-ninja-release"
+BUILD_PRESET="arm64-rpi5-ninja-release"
 CONTAINER_NAME="medusa-rpi5-build"
 BUILD_ONLY=false
 
@@ -43,8 +43,8 @@ Usage: $0 [OPTIONS]
 Build medusa for Raspberry Pi 5 using Docker
 
 OPTIONS:
-    -p, --preset PRESET      CMake preset to use (default: x64-rpi5-ninja-release)
-                            Available: x64-rpi5-ninja-debug, x64-rpi5-ninja-release, x64-rpi5-ninja-relinfo
+    -p, --preset PRESET      CMake preset to use (default: arm64-rpi5-ninja-release)
+                            Available: arm64-rpi5-ninja-debug, arm64-rpi5-ninja-release, arm64-rpi5-ninja-relinfo
     -t, --tag TAG           Docker image tag (default: latest)
     -n, --name NAME         Docker container name (default: medusa-rpi5-build)
     -b, --build-only        Only build the Docker image, don't compile the project
@@ -56,7 +56,7 @@ EXAMPLES:
     $0
 
     # Build debug version
-    $0 --preset x64-rpi5-ninja-debug
+    $0 --preset arm64-rpi5-ninja-debug
 
     # Build without Docker cache
     $0 --no-cache
@@ -103,11 +103,11 @@ done
 
 # Validate preset
 case $BUILD_PRESET in
-    x64-rpi5-ninja-debug|x64-rpi5-ninja-release|x64-rpi5-ninja-relinfo)
+    arm64-rpi5-ninja-debug|arm64-rpi5-ninja-release|arm64-rpi5-ninja-relinfo)
         ;;
     *)
         print_error "Invalid preset: $BUILD_PRESET"
-        print_info "Available presets: x64-rpi5-ninja-debug, x64-rpi5-ninja-release, x64-rpi5-ninja-relinfo"
+        print_info "Available presets: arm64-rpi5-ninja-debug, arm64-rpi5-ninja-release, arm64-rpi5-ninja-relinfo"
         exit 1
         ;;
 esac
@@ -127,7 +127,7 @@ fi
 print_info "Building Docker image..."
 docker build \
     ${NO_CACHE} \
-    --platform linux/amd64 \
+    --platform linux/arm64 \
     --build-arg BUILD_PRESET=${BUILD_PRESET} \
     -t ${IMAGE_NAME}:${IMAGE_TAG} \
     -f "${SCRIPT_DIR}/Dockerfile" \

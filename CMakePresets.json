@@ -22,46 +22,46 @@
 			}
 		},
 		{
-			"name": "base-x64-rpi5",
+			"name": "base-arm64-rpi5",
 			"inherits": "base",
 			"cacheVariables": {
-				"VCPKG_TARGET_TRIPLET": "x64-linux",
-				"CMAKE_OSX_ARCHITECTURES": "x64"
+				"VCPKG_TARGET_TRIPLET": "arm64-linux",
+				"CMAKE_OSX_ARCHITECTURES": "arm64"
 			}
 		},
 		{
-			"name": "base-x64-rpi5-ninja",
-			"inherits": "base-x64-rpi5",
+			"name": "base-arm64-rpi5-ninja",
+			"inherits": "base-arm64-rpi5",
 			"generator": "Ninja"
 		},
 		{
-			"name": "x64-rpi5-ninja-debug",
-			"inherits": "base-x64-rpi5-ninja",
-			"displayName": "x64-rpi5-ninja-debug",
-			"binaryDir": "${sourceDir}/build/x64-rpi5-ninja/debug",
-			"installDir": "${sourceDir}/install/x64-rpi5-ninja/debug",
+			"name": "arm64-rpi5-ninja-debug",
+			"inherits": "base-arm64-rpi5-ninja",
+			"displayName": "arm64-rpi5-ninja-debug",
+			"binaryDir": "${sourceDir}/build/arm64-rpi5-ninja/debug",
+			"installDir": "${sourceDir}/install/arm64-rpi5-ninja/debug",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Debug",
 				"CMAKE_CXX_FLAGS_DEBUG": "-g"
 			}
 		},
 		{
-			"name": "x64-rpi5-ninja-release",
-			"inherits": "base-x64-rpi5-ninja",
-			"displayName": "x64-rpi5-ninja-release",
-			"binaryDir": "${sourceDir}/build/x64-rpi5-ninja/release",
-			"installDir": "${sourceDir}/install/x64-rpi5-ninja/release",
+			"name": "arm64-rpi5-ninja-release",
+			"inherits": "base-arm64-rpi5-ninja",
+			"displayName": "arm64-rpi5-ninja-release",
+			"binaryDir": "${sourceDir}/build/arm64-rpi5-ninja/release",
+			"installDir": "${sourceDir}/install/arm64-rpi5-ninja/release",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Release",
 				"CMAKE_CXX_FLAGS_RELEASE": "-O2 -DNDEBUG"
 			}
 		},
 		{
-			"name": "x64-rpi5-ninja-relinfo",
-			"inherits": "base-x64-rpi5-ninja",
-			"displayName": "x64-rpi5-ninja-relinfo",
-			"binaryDir": "${sourceDir}/build/x64-rpi5-ninja/relinfo",
-			"installDir": "${sourceDir}/install/x64-rpi5-ninja/relinfo",
+			"name": "arm64-rpi5-ninja-relinfo",
+			"inherits": "base-arm64-rpi5-ninja",
+			"displayName": "arm64-rpi5-ninja-relinfo",
+			"binaryDir": "${sourceDir}/build/arm64-rpi5-ninja/relinfo",
+			"installDir": "${sourceDir}/install/arm64-rpi5-ninja/relinfo",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "RelWithDebInfo",
 				"CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG"
@@ -70,18 +70,18 @@
 	],
 	"buildPresets": [
 		{
-			"name": "x64-rpi5-ninja-debug",
-			"configurePreset": "x64-rpi5-ninja-debug",
+			"name": "arm64-rpi5-ninja-debug",
+			"configurePreset": "arm64-rpi5-ninja-debug",
 			"configuration": "Debug"
 		},
 		{
-			"name": "x64-rpi5-ninja-release",
-			"configurePreset": "x64-rpi5-ninja-release",
+			"name": "arm64-rpi5-ninja-release",
+			"configurePreset": "arm64-rpi5-ninja-release",
 			"configuration": "Release"
 		},
 		{
-			"name": "x64-rpi5-ninja-relinfo",
-			"configurePreset": "x64-rpi5-ninja-relinfo",
+			"name": "arm64-rpi5-ninja-relinfo",
+			"configurePreset": "arm64-rpi5-ninja-relinfo",
 			"configuration": "RelWithDebInfo"
 		}
 	],
@@ -98,21 +98,21 @@
 			}
 		},
 		{
-			"name": "x64-rpi5-ninja-debug",
+			"name": "arm64-rpi5-ninja-debug",
 			"inherits": "base",
-			"configurePreset": "x64-rpi5-ninja-debug",
+			"configurePreset": "arm64-rpi5-ninja-debug",
 			"configuration": "Debug"
 		},
 		{
-			"name": "x64-rpi5-ninja-release",
+			"name": "arm64-rpi5-ninja-release",
 			"inherits": "base",
-			"configurePreset": "x64-rpi5-ninja-release",
+			"configurePreset": "arm64-rpi5-ninja-release",
 			"configuration": "Release"
 		},
 		{
-			"name": "x64-rpi5-ninja-relinfo",
+			"name": "arm64-rpi5-ninja-relinfo",
 			"inherits": "base",
-			"configurePreset": "x64-rpi5-ninja-relinfo",
+			"configurePreset": "arm64-rpi5-ninja-relinfo",
 			"configuration": "RelWithDebInfo"
 		}
 	]
