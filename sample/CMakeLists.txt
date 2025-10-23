@@ -21,9 +21,6 @@ target_link_libraries(medusa_sample
         medusa
 )
 
-# Set C++ standard
-target_compile_features(medusa_sample PRIVATE cxx_std_20)
-
 # Set compile options
 if(APPLE)
     target_compile_options(medusa_sample

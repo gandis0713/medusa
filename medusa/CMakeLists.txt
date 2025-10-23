@@ -24,9 +24,10 @@ add_library(medusa STATIC
 # Set include directories
 target_include_directories(medusa
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE
         ${Vulkan_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Link dependencies
