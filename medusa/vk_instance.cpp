@@ -1,4 +1,4 @@
-#include "vk_instance.h"
+#include "vk_instance.hpp"
 
 #include <spdlog/spdlog.h>
 #include <stdexcept>
