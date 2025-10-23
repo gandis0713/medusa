@@ -64,11 +64,16 @@ COPY . .
 
 # Configure and build using CMake preset
 # Default to release build, can be overridden with --build-arg
+# Use BuildKit cache mount for vcpkg binary cache to speed up builds
 ARG BUILD_PRESET=arm64-rpi5-ninja-release
-RUN cmake --preset ${BUILD_PRESET}
+RUN --mount=type=cache,target=/opt/vcpkg/archives,sharing=locked \
+    --mount=type=cache,target=/root/.cache/vcpkg,sharing=locked \
+    cmake --preset ${BUILD_PRESET}
 
 # Build the project
-RUN cmake --build --preset ${BUILD_PRESET} -j$(nproc)
+RUN --mount=type=cache,target=/opt/vcpkg/archives,sharing=locked \
+    --mount=type=cache,target=/root/.cache/vcpkg,sharing=locked \
+    cmake --build --preset ${BUILD_PRESET} -j$(nproc)
 
 # Runtime stage (optional, for smaller final image)
 FROM --platform=linux/arm64 ubuntu:22.04 AS runtime
@@ -88,7 +93,6 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 ARG BUILD_PRESET=arm64-rpi5-ninja-release
 COPY --from=builder /workspace/build ./build
-COPY --from=builder /workspace/install ./install
 
 # Set environment variables
 ENV LD_LIBRARY_PATH=/app/build

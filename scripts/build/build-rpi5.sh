@@ -123,9 +123,9 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Build Docker image
-print_info "Building Docker image..."
-docker build \
+# Build Docker image with BuildKit for caching
+print_info "Building Docker image with BuildKit cache..."
+DOCKER_BUILDKIT=1 docker build \
     ${NO_CACHE} \
     --platform linux/arm64 \
     --build-arg BUILD_PRESET=${BUILD_PRESET} \

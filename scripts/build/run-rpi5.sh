@@ -14,9 +14,10 @@ NC='\033[0m' # No Color
 # Default values
 IMAGE_NAME="medusa-rpi5-builder"
 IMAGE_TAG="latest"
-CONTAINER_NAME="medusa-rpi5-run"
+CONTAINER_NAME="medusa-rpi5-run-$$"  # Add PID to avoid name conflicts
 INTERACTIVE=true
 BUILD_TYPE="release"
+RUN_SAMPLE=false
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -44,30 +45,31 @@ Run medusa in a Docker container
 
 OPTIONS:
     -t, --tag TAG           Docker image tag (default: latest)
-    -n, --name NAME         Docker container name (default: medusa-rpi5-run)
+    -n, --name NAME         Docker container name (default: medusa-rpi5-run-<PID>)
     -b, --build-type TYPE   Build type: debug, release, relinfo (default: release)
+    -s, --sample            Run the medusa_sample application directly
     -d, --detach            Run in detached mode (background)
     --rm                    Automatically remove container when it exits (default)
     -h, --help              Show this help message
 
 COMMAND:
     Optional command to run in the container. If not specified, runs bash shell.
-    Examples:
-        - /app/build/arm64-rpi5-ninja/release/sample/medusa_sample
-        - bash
 
 EXAMPLES:
     # Run interactive bash shell in the container
     $0
 
-    # Run the medusa sample application
+    # Run the medusa sample application (easy way)
+    $0 --sample
+
+    # Run debug version of sample
+    $0 --build-type debug --sample
+
+    # Run custom command
     $0 /app/build/arm64-rpi5-ninja/release/sample/medusa_sample
 
-    # Run debug version
-    $0 --build-type debug /app/build/arm64-rpi5-ninja/debug/sample/medusa_sample
-
     # Run in background
-    $0 --detach /app/build/arm64-rpi5-ninja/release/sample/medusa_sample
+    $0 --detach --sample
 EOF
     exit 0
 }
@@ -88,6 +90,10 @@ while [[ $# -gt 0 ]]; do
         -b|--build-type)
             BUILD_TYPE="$2"
             shift 2
+            ;;
+        -s|--sample)
+            RUN_SAMPLE=true
+            shift
             ;;
         -d|--detach)
             INTERACTIVE=false
@@ -120,8 +126,17 @@ case $BUILD_TYPE in
 esac
 
 # Map build type to directory name
-BUILD_DIR_MAP=( ["debug"]="debug" ["release"]="release" ["relinfo"]="relinfo" )
-BUILD_DIR="${BUILD_DIR_MAP[$BUILD_TYPE]}"
+case $BUILD_TYPE in
+    debug)
+        BUILD_DIR="debug"
+        ;;
+    release)
+        BUILD_DIR="release"
+        ;;
+    relinfo)
+        BUILD_DIR="relinfo"
+        ;;
+esac
 
 print_info "Running medusa in Docker container..."
 print_info "Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
@@ -140,8 +155,12 @@ if ! docker image inspect ${IMAGE_NAME}:${IMAGE_TAG} &> /dev/null; then
     exit 1
 fi
 
-# Set default command if not specified
-if [ -z "$COMMAND" ]; then
+# Set command based on options
+if [ "$RUN_SAMPLE" = true ]; then
+    # Run the sample application
+    COMMAND="/app/build/arm64-rpi5-ninja/${BUILD_DIR}/sample/medusa_sample"
+    print_info "Running sample application: ${COMMAND}"
+elif [ -z "$COMMAND" ]; then
     if [ "$INTERACTIVE" = true ]; then
         COMMAND="/bin/bash"
         DOCKER_OPTS="$DOCKER_OPTS -it"
@@ -158,13 +177,22 @@ fi
 print_info "Command: ${COMMAND}"
 print_info "Starting container..."
 
+# Setup X11 forwarding if available
+X11_OPTS=""
+if [ -n "$DISPLAY" ]; then
+    # Check if running on Linux
+    if [ -d "/tmp/.X11-unix" ]; then
+        X11_OPTS="-e DISPLAY=${DISPLAY} -v /tmp/.X11-unix:/tmp/.X11-unix:ro"
+        print_info "X11 forwarding enabled"
+    fi
+fi
+
 # Run the container
 docker run \
     $DOCKER_OPTS \
     --name ${CONTAINER_NAME} \
     --platform linux/arm64 \
-    -e DISPLAY=${DISPLAY:-:0} \
-    -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
+    $X11_OPTS \
     ${IMAGE_NAME}:${IMAGE_TAG} \
     ${COMMAND}
 
