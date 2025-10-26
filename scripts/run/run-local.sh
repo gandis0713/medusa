@@ -135,7 +135,6 @@ fi
 
 export VK_ICD_FILENAMES="${ICD_JSON_PATH}"
 export LD_LIBRARY_PATH="${ICD_LIB_PATH}:${LD_LIBRARY_PATH}"
-export VK_LOADER_DEBUG=all
 
 print_info "Vulkan ICD manifest: ${VK_ICD_FILENAMES}"
 print_info "Vulkan ICD library path: ${ICD_LIB_PATH}"
