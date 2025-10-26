@@ -187,12 +187,22 @@ if [ -n "$DISPLAY" ]; then
     fi
 fi
 
+# Setup Vulkan ICD environment variables
+ICD_JSON_PATH="/app/build/arm64-rpi5-ninja/${BUILD_DIR}/medusa/medusa_icd.json"
+ICD_LIB_PATH="/app/build/arm64-rpi5-ninja/${BUILD_DIR}/medusa"
+VULKAN_ENV="-e VK_ICD_FILENAMES=${ICD_JSON_PATH} -e LD_LIBRARY_PATH=${ICD_LIB_PATH}:/usr/local/lib:/usr/lib -e VK_LOADER_DEBUG=all"
+
+print_info "Vulkan ICD manifest: ${ICD_JSON_PATH}"
+print_info "Vulkan ICD library path: ${ICD_LIB_PATH}"
+print_info "Vulkan loader debug enabled"
+
 # Run the container
 docker run \
     $DOCKER_OPTS \
     --name ${CONTAINER_NAME} \
     --platform linux/arm64 \
     $X11_OPTS \
+    $VULKAN_ENV \
     ${IMAGE_NAME}:${IMAGE_TAG} \
     ${COMMAND}
 

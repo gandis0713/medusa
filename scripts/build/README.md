@@ -54,7 +54,7 @@ build-output/
 
 #### Interactive Shell 실행
 ```bash
-./scripts/build/run-rpi5.sh
+./scripts/run/run-rpi5.sh
 ```
 
 컨테이너 내부에서:
@@ -69,13 +69,13 @@ build-output/
 #### 직접 실행
 ```bash
 # Release 버전 실행
-./scripts/build/run-rpi5.sh /app/build/arm64-rpi5-ninja/release/sample/medusa_sample
+./scripts/run/run-rpi5.sh /app/build/arm64-rpi5-ninja/release/sample/medusa_sample
 
 # Debug 버전 실행
-./scripts/build/run-rpi5.sh --build-type debug /app/build/arm64-rpi5-ninja/debug/sample/medusa_sample
+./scripts/run/run-rpi5.sh --build-type debug /app/build/arm64-rpi5-ninja/debug/sample/medusa_sample
 
 # Background에서 실행
-./scripts/build/run-rpi5.sh --detach /app/build/arm64-rpi5-ninja/release/sample/medusa_sample
+./scripts/run/run-rpi5.sh --detach /app/build/arm64-rpi5-ninja/release/sample/medusa_sample
 ```
 
 ### 방법 2: 추출된 파일로 실행
@@ -136,7 +136,7 @@ uname -m  # x86_64 또는 aarch64
 ### 커스텀 Docker 태그
 ```bash
 ./scripts/build/build-rpi5.sh --tag v1.0.0
-./scripts/build/run-rpi5.sh --tag v1.0.0
+./scripts/run/run-rpi5.sh --tag v1.0.0
 ```
 
 ### Docker 이미지 크기 확인
