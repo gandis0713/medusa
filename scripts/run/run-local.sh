@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run script for medusa locally (without Docker)
-# This script runs the built medusa binary on the local machine
+# This script runs the built medusa sample application on the local machine
 
 set -e  # Exit on error
 
@@ -13,7 +13,6 @@ NC='\033[0m' # No Color
 
 # Default values
 BUILD_TYPE="release"
-RUN_SAMPLE=false
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,50 +34,40 @@ print_error() {
 # Function to show usage
 usage() {
     cat << EOF
-Usage: $0 [OPTIONS] [COMMAND]
+Usage: $0 [OPTIONS]
 
-Run medusa locally (without Docker)
+Run medusa sample application locally (without Docker)
 
 OPTIONS:
     -b, --build-type TYPE   Build type: debug, release, relinfo (default: release)
-    -s, --sample            Run the medusa_sample application directly
     -h, --help              Show this help message
 
-COMMAND:
-    Optional command to run. If not specified and --sample is not set, shows help.
-
 EXAMPLES:
-    # Run the medusa sample application (easy way)
-    $0 --sample
+    # Run release version
+    $0
 
-    # Run debug version of sample
-    $0 --build-type debug --sample
+    # Run debug version
+    $0 -b debug
 
-    # Run custom binary
-    $0 ${PROJECT_ROOT}/build/arm64-rpi5-ninja/release/sample/medusa_sample
+    # Run relinfo version
+    $0 --build-type relinfo
 EOF
     exit 0
 }
 
 # Parse command line arguments
-COMMAND=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         -b|--build-type)
             BUILD_TYPE="$2"
             shift 2
             ;;
-        -s|--sample)
-            RUN_SAMPLE=true
-            shift
-            ;;
         -h|--help)
             usage
             ;;
         *)
-            # Assume remaining arguments are the command to run
-            COMMAND="$@"
-            break
+            print_error "Unknown option: $1"
+            usage
             ;;
     esac
 done
@@ -108,8 +97,9 @@ case $BUILD_TYPE in
 esac
 
 BUILD_PATH="${PROJECT_ROOT}/build/arm64-rpi5-ninja/${BUILD_DIR}"
+SAMPLE_BINARY="${BUILD_PATH}/sample/medusa_sample"
 
-print_info "Running medusa locally..."
+print_info "Running medusa sample locally..."
 print_info "Build type: ${BUILD_TYPE}"
 print_info "Build path: ${BUILD_PATH}"
 
@@ -120,19 +110,10 @@ if [ ! -d "${BUILD_PATH}" ]; then
     exit 1
 fi
 
-# Set command based on options
-if [ "$RUN_SAMPLE" = true ]; then
-    # Run the sample application
-    COMMAND="${BUILD_PATH}/sample/medusa_sample"
-    print_info "Running sample application: ${COMMAND}"
-elif [ -z "$COMMAND" ]; then
-    print_error "No command specified. Use --sample or provide a command."
-    usage
-fi
-
-# Check if command exists
-if [ ! -f "${COMMAND}" ] && [ ! -x "$(command -v ${COMMAND})" ]; then
-    print_error "Command not found: ${COMMAND}"
+# Check if sample binary exists
+if [ ! -f "${SAMPLE_BINARY}" ]; then
+    print_error "Sample binary not found: ${SAMPLE_BINARY}"
+    print_info "Please rebuild the project"
     exit 1
 fi
 
@@ -160,8 +141,8 @@ print_info "Vulkan ICD manifest: ${VK_ICD_FILENAMES}"
 print_info "Vulkan ICD library path: ${ICD_LIB_PATH}"
 print_info "Vulkan loader debug enabled"
 print_info ""
-print_info "Executing: ${COMMAND}"
+print_info "Executing: ${SAMPLE_BINARY}"
 print_info "======================================"
 
-# Execute the command
-exec ${COMMAND}
+# Execute the sample
+exec ${SAMPLE_BINARY}
