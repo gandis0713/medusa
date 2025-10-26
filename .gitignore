@@ -54,3 +54,5 @@ imgui.ini
 
 # for mac
 .DS_Store
+
+.vscode/settings.json
