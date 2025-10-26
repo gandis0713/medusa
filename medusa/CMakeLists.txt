@@ -12,22 +12,20 @@ find_package(VulkanHeaders CONFIG)
 find_package(spdlog CONFIG REQUIRED)
 
 # Collect source files
-file(GLOB_RECURSE MEDUSA_SOURCES "*.cpp")
-file(GLOB_RECURSE MEDUSA_HEADERS "*.hpp")
+file(GLOB_RECURSE MEDUSA_SOURCES "runtime/*.cpp")
+file(GLOB_RECURSE MEDUSA_HEADERS "runtime/*.hpp")
 
-# Create library
-add_library(medusa STATIC
+# Create Vulkan ICD shared library
+add_library(medusa SHARED
     ${MEDUSA_SOURCES}
     ${MEDUSA_HEADERS}
 )
 
 # Set include directories
 target_include_directories(medusa
-    PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE
-    ${Vulkan_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${Vulkan_INCLUDE_DIRS}
 )
 
 # Link dependencies
@@ -41,10 +39,22 @@ target_link_libraries(medusa
 # Set compile options
 target_compile_options(medusa
     PRIVATE
-    -Wall
-    -Werror
-    -Wno-unused-parameter
-    -Wno-unused-function
+        -Wall
+        -Werror
+        -Wno-unused-parameter
+        -Wno-unused-function
+)
+
+# Set output name for ICD library
+set_target_properties(medusa PROPERTIES
+    OUTPUT_NAME "medusa_icd"
+)
+
+# Generate ICD manifest JSON file
+# Use file(GENERATE) to support generator expressions
+file(GENERATE
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/medusa_icd.json
+    INPUT ${CMAKE_SOURCE_DIR}/cmake/medusa_icd.json.in
 )
 
 add_library(medusa::medusa ALIAS medusa)

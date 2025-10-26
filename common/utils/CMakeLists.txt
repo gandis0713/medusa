@@ -36,5 +36,10 @@ target_compile_options(medusa_utils
 # Set C++ standard
 target_compile_features(medusa_utils PUBLIC cxx_std_20)
 
+# Enable Position Independent Code for linking with shared libraries
+set_target_properties(medusa_utils PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
 # Create alias for consistent naming
 add_library(medusa::utils ALIAS medusa_utils)

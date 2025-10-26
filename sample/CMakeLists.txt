@@ -7,6 +7,9 @@ project(
     LANGUAGES CXX
 )
 
+# Find Vulkan (for loader, not ICD)
+find_package(Vulkan REQUIRED)
+
 # Collect source files
 file(GLOB_RECURSE srcs "*.cpp" "*.h")
 
@@ -15,11 +18,12 @@ add_executable(medusa_sample
     ${srcs}
 )
 
-# Link medusa library
+# Link Vulkan loader and utils (for logging)
+# NOTE: Do NOT link medusa::medusa (ICD) - it will be loaded by Vulkan loader at runtime
 target_link_libraries(medusa_sample
     PRIVATE
-    medusa::medusa
     medusa::utils
+    Vulkan::Vulkan
 )
 
 # Set compile options
