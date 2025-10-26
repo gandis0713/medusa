@@ -1,12 +1,14 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
+#include <vulkan/vulkan.h>
 
-namespace medusa {
-namespace runtime {
+namespace medusa
+{
+namespace runtime
+{
 
 /**
  * @brief Vulkan Instance implementation for Raspberry Pi 5
@@ -16,7 +18,8 @@ namespace runtime {
  *
  * VkInstance handle = reinterpret_cast<VkInstance>(vk_instance*)
  */
-class vk_instance {
+class vk_instance
+{
 public:
     /**
      * @brief Create a Vulkan instance from VkInstanceCreateInfo
@@ -34,19 +37,26 @@ public:
     /**
      * @brief Convert vk_instance* to VkInstance handle
      */
-    VkInstance as_handle() { return reinterpret_cast<VkInstance>(this); }
+    VkInstance as_handle()
+    {
+        return reinterpret_cast<VkInstance>(this);
+    }
 
     /**
      * @brief Convert VkInstance handle to vk_instance*
      */
-    static vk_instance* from_handle(VkInstance handle) {
+    static vk_instance* from_handle(VkInstance handle)
+    {
         return reinterpret_cast<vk_instance*>(handle);
     }
 
     /**
      * @brief Check if instance is valid
      */
-    bool is_valid() const { return valid_; }
+    bool is_valid() const
+    {
+        return valid_;
+    }
 
 private:
     // Private constructor - use create() instead
