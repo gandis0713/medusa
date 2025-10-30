@@ -7,9 +7,6 @@ project(
     LANGUAGES C
 )
 
-# Find dependencies
-find_package(VulkanHeaders CONFIG)
-
 # Collect source files
 file(GLOB_RECURSE MEDUSA_SOURCES "*.c")
 file(GLOB_RECURSE MEDUSA_HEADERS "*.h")
@@ -24,13 +21,7 @@ add_library(medusa SHARED
 target_include_directories(medusa
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${Vulkan_INCLUDE_DIRS}
-)
-
-# Link dependencies
-target_link_libraries(medusa
-    PUBLIC
-    Vulkan::Headers
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 # Set compile options

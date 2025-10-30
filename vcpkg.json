@@ -4,7 +4,6 @@
   "dependencies": [
     "gtest",
     "spdlog",
-    "vulkan-headers",
     {
       "name": "vcpkg-cmake",
       "host": true
