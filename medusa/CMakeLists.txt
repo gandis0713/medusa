@@ -4,16 +4,15 @@ project(
     medusa_lib
     VERSION 0.0.1
     DESCRIPTION "Vulkan Driver Library for Raspberry Pi 5"
-    LANGUAGES CXX
+    LANGUAGES C
 )
 
 # Find dependencies
 find_package(VulkanHeaders CONFIG)
-find_package(spdlog CONFIG REQUIRED)
 
 # Collect source files
-file(GLOB_RECURSE MEDUSA_SOURCES "runtime/*.cpp")
-file(GLOB_RECURSE MEDUSA_HEADERS "runtime/*.hpp")
+file(GLOB_RECURSE MEDUSA_SOURCES "*.c")
+file(GLOB_RECURSE MEDUSA_HEADERS "*.h")
 
 # Create Vulkan ICD shared library
 add_library(medusa SHARED
@@ -31,8 +30,6 @@ target_include_directories(medusa
 # Link dependencies
 target_link_libraries(medusa
     PUBLIC
-    medusa::utils
-    spdlog::spdlog
     Vulkan::Headers
 )
 
@@ -48,6 +45,8 @@ target_compile_options(medusa
 # Set output name for ICD library
 set_target_properties(medusa PROPERTIES
     OUTPUT_NAME "medusa_icd"
+    C_STANDARD 11
+    C_STANDARD_REQUIRED ON
 )
 
 # Generate ICD manifest JSON file

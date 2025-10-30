@@ -1,13 +1,16 @@
-#include <utils/log.hpp>
 #include <vulkan/vulkan.h>
+#include <spdlog/spdlog.h>
+#include <memory>
 
 int main(int argc, char** argv)
 {
     // Initialize logger
-    medusa::utils::Logger::init("MedusaSample", spdlog::level::info);
+    auto logger = spdlog::default_logger();
+    logger->set_pattern("[%n] [%^%l%$] %v");
+    logger->set_level(spdlog::level::info);
 
-    LOG_INFO("=== Medusa Vulkan Driver Sample ===");
-    LOG_INFO("Running on Raspberry Pi 5");
+    spdlog::info("=== Medusa Vulkan Driver Sample ===");
+    spdlog::info("Running on Raspberry Pi 5");
 
     // Prepare Vulkan instance creation info
     VkApplicationInfo app_info{};
@@ -28,17 +31,17 @@ int main(int argc, char** argv)
 
     if (result != VK_SUCCESS)
     {
-        LOG_ERROR("Failed to create Vulkan instance, error: {}", static_cast<int>(result));
+        spdlog::error("Failed to create Vulkan instance, error: {}", static_cast<int>(result));
         return 1;
     }
 
-    LOG_INFO("Vulkan instance created successfully!");
-    LOG_INFO("Instance handle: {}", static_cast<void*>(instance));
+    spdlog::info("Vulkan instance created successfully!");
+    spdlog::info("Instance handle: {}", static_cast<void*>(instance));
 
     // Destroy instance
     vkDestroyInstance(instance, nullptr);
-    LOG_INFO("Vulkan instance destroyed");
+    spdlog::info("Vulkan instance destroyed");
 
-    LOG_INFO("Sample completed successfully");
+    spdlog::info("Sample completed successfully");
     return 0;
 }
