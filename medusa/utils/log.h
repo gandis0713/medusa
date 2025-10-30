@@ -14,7 +14,6 @@ extern "C" {
 #define LOG_LEVEL_INFO     2
 #define LOG_LEVEL_WARN     3
 #define LOG_LEVEL_ERROR    4
-#define LOG_LEVEL_CRITICAL 5
 
 /**
  * @brief Initialize the logger (must be called before any logging)
@@ -32,7 +31,6 @@ void log_debug(const char* fmt, ...);
 void log_info(const char* fmt, ...);
 void log_warn(const char* fmt, ...);
 void log_error(const char* fmt, ...);
-void log_critical(const char* fmt, ...);
 
 /* Convenience macros for C code */
 #define LOG_TRACE(...)    log_trace(__VA_ARGS__)
@@ -40,7 +38,6 @@ void log_critical(const char* fmt, ...);
 #define LOG_INFO(...)     log_info(__VA_ARGS__)
 #define LOG_WARN(...)     log_warn(__VA_ARGS__)
 #define LOG_ERROR(...)    log_error(__VA_ARGS__)
-#define LOG_CRITICAL(...) log_critical(__VA_ARGS__)
 
 #ifdef __cplusplus
 }

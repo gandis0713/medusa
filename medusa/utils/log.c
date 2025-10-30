@@ -12,7 +12,6 @@
 #define COLOR_GREEN   "\033[32m"
 #define COLOR_YELLOW  "\033[33m"
 #define COLOR_RED     "\033[31m"
-#define COLOR_MAGENTA "\033[35m"
 
 /* Global logger state */
 static struct {
@@ -55,7 +54,6 @@ static const char* get_level_string(int level)
         case LOG_LEVEL_INFO:     return "info";
         case LOG_LEVEL_WARN:     return "warn";
         case LOG_LEVEL_ERROR:    return "error";
-        case LOG_LEVEL_CRITICAL: return "critical";
         default:                 return "unknown";
     }
 }
@@ -69,7 +67,6 @@ static const char* get_level_color(int level)
         case LOG_LEVEL_INFO:     return COLOR_GREEN;
         case LOG_LEVEL_WARN:     return COLOR_YELLOW;
         case LOG_LEVEL_ERROR:    return COLOR_RED;
-        case LOG_LEVEL_CRITICAL: return COLOR_MAGENTA;
         default:                 return COLOR_RESET;
     }
 }
@@ -142,13 +139,5 @@ void log_error(const char* fmt, ...)
     va_list args;
     va_start(args, fmt);
     log_message(LOG_LEVEL_ERROR, fmt, args);
-    va_end(args);
-}
-
-void log_critical(const char* fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    log_message(LOG_LEVEL_CRITICAL, fmt, args);
     va_end(args);
 }
