@@ -1,72 +1,57 @@
 #pragma once
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <vulkan/vulkan.h>
+#include "vk_dispatch_table.h"
+#include "vk_extensions.h"
+#include "vk_object.h"
+
+#include <vulkan/vulkan_core.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/**
- * @brief Vulkan Instance implementation for Raspberry Pi 5
- *
- * This struct IS the VkInstance. The VkInstance handle returned to
- * the application is simply a pointer to this struct.
- *
- * VkInstance handle = (VkInstance)(vk_instance*)
- */
-typedef struct vk_instance
-{
-    bool valid;
-    char app_name[256];
-    uint32_t app_version;
-    char engine_name[256];
-    uint32_t engine_version;
-    uint32_t api_version;
+    struct vk_app_info
+    {
+        /** VkApplicationInfo::pApplicationName */
+        const char* app_name;
 
-    char** enabled_extensions;
-    uint32_t enabled_extensions_count;
-    char** enabled_layers;
-    uint32_t enabled_layers_count;
-} vk_instance;
+        /** VkApplicationInfo::applicationVersion */
+        uint32_t app_version;
 
-/**
- * @brief Create a Vulkan instance from VkInstanceCreateInfo
- *
- * @param create_info Instance creation parameters
- * @return vk_instance* Pointer to created instance (NULL on failure)
- */
-vk_instance* vk_instance_create(const VkInstanceCreateInfo* create_info);
+        /** VkApplicationInfo::pEngineName */
+        const char* engine_name;
 
-/**
- * @brief Destroy the vk_instance
- */
-void vk_instance_destroy(vk_instance* instance);
+        /** VkApplicationInfo::engineVersion */
+        uint32_t engine_version;
 
-/**
- * @brief Convert vk_instance* to VkInstance handle
- */
-static inline VkInstance vk_instance_as_handle(vk_instance* instance)
-{
-    return (VkInstance)instance;
-}
+        /** VkApplicationInfo::apiVersion or `VK_API_VERSION_1_0`
+         *
+         * If the application does not provide a `pApplicationInfo` or the
+         * `apiVersion` field is 0, this is set to `VK_API_VERSION_1_0`.
+         */
+        uint32_t api_version;
+    };
 
-/**
- * @brief Convert VkInstance handle to vk_instance*
- */
-static inline vk_instance* vk_instance_from_handle(VkInstance handle)
-{
-    return (vk_instance*)handle;
-}
+    typedef struct vk_instance
+    {
+        struct vk_object_base base;
+        struct vk_app_info app_info;
+        VkAllocationCallbacks alloc;
 
-/**
- * @brief Check if instance is valid
- */
-static inline bool vk_instance_is_valid(const vk_instance* instance)
-{
-    return instance ? instance->valid : false;
-}
+        char** enabled_extensions;
+        uint32_t enabled_extensions_count;
+        char** enabled_layers;
+        uint32_t enabled_layers_count;
+    } vk_instance;
+
+    VkResult vk_instance_init(struct vk_instance* instance,
+                              const struct vk_instance_extension_table* supported_extensions,
+                              const struct vk_instance_dispatch_table* dispatch_table,
+                              const VkInstanceCreateInfo* pCreateInfo,
+                              const VkAllocationCallbacks* alloc);
+
+    void vk_instance_finish(struct vk_instance* instance);
 
 #ifdef __cplusplus
 }

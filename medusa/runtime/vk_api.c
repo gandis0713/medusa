@@ -1,66 +1,32 @@
+#include "driver/v3dv_instance.h"
 #include "utils/log.h"
+#include "vk_alloc.h"
 #include "vk_instance.h"
-#include <vulkan/vulkan.h>
 
 #include <assert.h>
+#include <stdalign.h>
 #include <string.h>
+#include <vulkan/vulkan_core.h>
 
 /* Internal implementation functions */
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_CreateInstance(
-    const VkInstanceCreateInfo* pCreateInfo,
-    const VkAllocationCallbacks* pAllocator,
-    VkInstance* pInstance)
+static VKAPI_ATTR VkResult VKAPI_CALL medusa_CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
+                                                            const VkAllocationCallbacks* pAllocator,
+                                                            VkInstance* pInstance)
 {
-    LOG_INFO("vkCreateInstance called (Medusa ICD)");
-
-    if (!pCreateInfo)
-    {
-        LOG_ERROR("pCreateInfo is null");
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-
-    if (!pInstance)
-    {
-        LOG_ERROR("pInstance is null");
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-
-    /* Create the instance - vk_instance* IS VkInstance */
-    vk_instance* instance = vk_instance_create(pCreateInfo);
-    if (!instance)
-    {
-        LOG_ERROR("Failed to create instance");
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-
-    /* Convert to VkInstance handle */
-    *pInstance = vk_instance_as_handle(instance);
-    LOG_INFO("vkCreateInstance succeeded, handle: %p", (void*)*pInstance);
-    return VK_SUCCESS;
+    return v3dv_CreateInstance(pCreateInfo,
+                               pAllocator,
+                               pInstance);
 }
 
-static VKAPI_ATTR void VKAPI_CALL medusa_DestroyInstance(
-    VkInstance handle,
-    const VkAllocationCallbacks* pAllocator)
+static VKAPI_ATTR void VKAPI_CALL medusa_DestroyInstance(VkInstance _instance,
+                                                         const VkAllocationCallbacks* pAllocator)
 {
-    LOG_INFO("vkDestroyInstance called (Medusa ICD)");
-
-    if (!handle)
-    {
-        LOG_WARN("vkDestroyInstance called with null instance");
-        return;
-    }
-
-    /* Convert VkInstance handle back to vk_instance* */
-    vk_instance* instance = vk_instance_from_handle(handle);
-    vk_instance_destroy(instance);
-    LOG_INFO("Instance destroyed successfully");
+    v3dv_DestroyInstance(_instance, pAllocator);
 }
 
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceExtensionProperties(
-    const char* pLayerName,
-    uint32_t* pPropertyCount,
-    VkExtensionProperties* pProperties)
+static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceExtensionProperties(const char* pLayerName,
+                                                                                  uint32_t* pPropertyCount,
+                                                                                  VkExtensionProperties* pProperties)
 {
     LOG_DEBUG("vkEnumerateInstanceExtensionProperties called");
 
@@ -81,9 +47,8 @@ static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceExtensionPropertie
     return VK_SUCCESS;
 }
 
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceLayerProperties(
-    uint32_t* pPropertyCount,
-    VkLayerProperties* pProperties)
+static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceLayerProperties(uint32_t* pPropertyCount,
+                                                                              VkLayerProperties* pProperties)
 {
     LOG_DEBUG("vkEnumerateInstanceLayerProperties called");
 
@@ -98,8 +63,7 @@ static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceLayerProperties(
     return VK_SUCCESS;
 }
 
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceVersion(
-    uint32_t* pApiVersion)
+static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceVersion(uint32_t* pApiVersion)
 {
     LOG_DEBUG("vkEnumerateInstanceVersion called");
 
@@ -113,10 +77,9 @@ static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceVersion(
     return VK_SUCCESS;
 }
 
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumeratePhysicalDevices(
-    VkInstance instance,
-    uint32_t* pPhysicalDeviceCount,
-    VkPhysicalDevice* pPhysicalDevices)
+static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumeratePhysicalDevices(VkInstance instance,
+                                                                      uint32_t* pPhysicalDeviceCount,
+                                                                      VkPhysicalDevice* pPhysicalDevices)
 {
     LOG_DEBUG("vkEnumeratePhysicalDevices called");
 
