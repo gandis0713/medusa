@@ -1,6 +1,6 @@
-#include <vulkan/vulkan.h>
-#include <spdlog/spdlog.h>
 #include <memory>
+#include <spdlog/spdlog.h>
+#include <vulkan/vulkan.h>
 
 int main(int argc, char** argv)
 {
