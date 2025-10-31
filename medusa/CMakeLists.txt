@@ -22,6 +22,8 @@ target_include_directories(medusa
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/driver
+        ${CMAKE_CURRENT_SOURCE_DIR}/runtime
 )
 
 # Set compile options
