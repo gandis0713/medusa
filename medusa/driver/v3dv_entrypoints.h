@@ -36,12 +36,11 @@ extern "C"
 #endif
 
     extern const struct vk_instance_entrypoint_table v3dv_instance_entrypoints;
-
     extern const struct vk_physical_device_entrypoint_table v3dv_physical_device_entrypoints;
-
     extern const struct vk_device_entrypoint_table v3dv_device_entrypoints;
-    extern const struct vk_device_entrypoint_table ver42_device_entrypoints;
-    extern const struct vk_device_entrypoint_table ver71_device_entrypoints;
+
+    // extern const struct vk_device_entrypoint_table ver42_device_entrypoints;
+    // extern const struct vk_device_entrypoint_table ver71_device_entrypoints;
 
     VKAPI_ATTR VkResult VKAPI_CALL v3dv_CreateInstance(const VkInstanceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkInstance* pInstance) VK_ENTRY_WEAK VK_ENTRY_HIDDEN;
     VKAPI_ATTR void VKAPI_CALL v3dv_DestroyInstance(VkInstance instance, const VkAllocationCallbacks* pAllocator) VK_ENTRY_WEAK VK_ENTRY_HIDDEN;
