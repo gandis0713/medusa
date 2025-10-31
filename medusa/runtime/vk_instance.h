@@ -33,7 +33,7 @@ extern "C"
         uint32_t api_version;
     };
 
-    typedef struct vk_instance
+    struct vk_instance
     {
         struct vk_object_base base;
         struct vk_app_info app_info;
@@ -43,7 +43,7 @@ extern "C"
         uint32_t enabled_extensions_count;
         char** enabled_layers;
         uint32_t enabled_layers_count;
-    } vk_instance;
+    };
 
     VkResult vk_instance_init(struct vk_instance* instance,
                               const struct vk_instance_extension_table* supported_extensions,

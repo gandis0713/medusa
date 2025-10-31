@@ -1,5 +1,5 @@
 #include "utils/log.h"
-#include "v3dv_instance.h"
+#include "v3dv_entrypoints.h"
 #include "vk_alloc.h"
 #include "vk_instance.h"
 
@@ -8,25 +8,9 @@
 #include <string.h>
 #include <vulkan/vulkan_core.h>
 
-/* Internal implementation functions */
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
-                                                            const VkAllocationCallbacks* pAllocator,
-                                                            VkInstance* pInstance)
-{
-    return v3dv_CreateInstance(pCreateInfo,
-                               pAllocator,
-                               pInstance);
-}
-
-static VKAPI_ATTR void VKAPI_CALL medusa_DestroyInstance(VkInstance _instance,
-                                                         const VkAllocationCallbacks* pAllocator)
-{
-    v3dv_DestroyInstance(_instance, pAllocator);
-}
-
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceExtensionProperties(const char* pLayerName,
-                                                                                  uint32_t* pPropertyCount,
-                                                                                  VkExtensionProperties* pProperties)
+VKAPI_ATTR VkResult VKAPI_CALL v3dv_EnumerateInstanceExtensionProperties(const char* pLayerName,
+                                                                         uint32_t* pPropertyCount,
+                                                                         VkExtensionProperties* pProperties)
 {
     LOG_DEBUG("vkEnumerateInstanceExtensionProperties called");
 
@@ -47,8 +31,8 @@ static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceExtensionPropertie
     return VK_SUCCESS;
 }
 
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceLayerProperties(uint32_t* pPropertyCount,
-                                                                              VkLayerProperties* pProperties)
+VKAPI_ATTR VkResult VKAPI_CALL v3dv_EnumerateInstanceLayerProperties(uint32_t* pPropertyCount,
+                                                                     VkLayerProperties* pProperties)
 {
     LOG_DEBUG("vkEnumerateInstanceLayerProperties called");
 
@@ -63,7 +47,7 @@ static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceLayerProperties(ui
     return VK_SUCCESS;
 }
 
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceVersion(uint32_t* pApiVersion)
+VKAPI_ATTR VkResult VKAPI_CALL v3dv_EnumerateInstanceVersion(uint32_t* pApiVersion)
 {
     LOG_DEBUG("vkEnumerateInstanceVersion called");
 
@@ -77,9 +61,9 @@ static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateInstanceVersion(uint32_t* 
     return VK_SUCCESS;
 }
 
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumeratePhysicalDevices(VkInstance instance,
-                                                                      uint32_t* pPhysicalDeviceCount,
-                                                                      VkPhysicalDevice* pPhysicalDevices)
+VKAPI_ATTR VkResult VKAPI_CALL v3dv_EnumeratePhysicalDevices(VkInstance instance,
+                                                             uint32_t* pPhysicalDeviceCount,
+                                                             VkPhysicalDevice* pPhysicalDevices)
 {
     LOG_DEBUG("vkEnumeratePhysicalDevices called");
 
@@ -101,7 +85,7 @@ static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumeratePhysicalDevices(VkInstance
 }
 
 /* Physical device stub functions - minimal implementation for ICD validation */
-static VKAPI_ATTR void VKAPI_CALL medusa_GetPhysicalDeviceFeatures(
+VKAPI_ATTR void VKAPI_CALL v3dv_GetPhysicalDeviceFeatures(
     VkPhysicalDevice physicalDevice,
     VkPhysicalDeviceFeatures* pFeatures)
 {
@@ -112,7 +96,7 @@ static VKAPI_ATTR void VKAPI_CALL medusa_GetPhysicalDeviceFeatures(
     }
 }
 
-static VKAPI_ATTR void VKAPI_CALL medusa_GetPhysicalDeviceProperties(
+VKAPI_ATTR void VKAPI_CALL v3dv_GetPhysicalDeviceProperties(
     VkPhysicalDevice physicalDevice,
     VkPhysicalDeviceProperties* pProperties)
 {
@@ -123,7 +107,7 @@ static VKAPI_ATTR void VKAPI_CALL medusa_GetPhysicalDeviceProperties(
     }
 }
 
-static VKAPI_ATTR void VKAPI_CALL medusa_GetPhysicalDeviceQueueFamilyProperties(
+VKAPI_ATTR void VKAPI_CALL v3dv_GetPhysicalDeviceQueueFamilyProperties(
     VkPhysicalDevice physicalDevice,
     uint32_t* pQueueFamilyPropertyCount,
     VkQueueFamilyProperties* pQueueFamilyProperties)
@@ -142,7 +126,7 @@ static VKAPI_ATTR void VKAPI_CALL medusa_GetPhysicalDeviceQueueFamilyProperties(
     }
 }
 
-static VKAPI_ATTR void VKAPI_CALL medusa_GetPhysicalDeviceMemoryProperties(
+VKAPI_ATTR void VKAPI_CALL v3dv_GetPhysicalDeviceMemoryProperties(
     VkPhysicalDevice physicalDevice,
     VkPhysicalDeviceMemoryProperties* pMemoryProperties)
 {
@@ -153,7 +137,7 @@ static VKAPI_ATTR void VKAPI_CALL medusa_GetPhysicalDeviceMemoryProperties(
     }
 }
 
-static VKAPI_ATTR void VKAPI_CALL medusa_GetPhysicalDeviceFormatProperties(
+VKAPI_ATTR void VKAPI_CALL v3dv_GetPhysicalDeviceFormatProperties(
     VkPhysicalDevice physicalDevice,
     VkFormat format,
     VkFormatProperties* pFormatProperties)
@@ -165,7 +149,7 @@ static VKAPI_ATTR void VKAPI_CALL medusa_GetPhysicalDeviceFormatProperties(
     }
 }
 
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_GetPhysicalDeviceImageFormatProperties(
+VKAPI_ATTR VkResult VKAPI_CALL v3dv_GetPhysicalDeviceImageFormatProperties(
     VkPhysicalDevice physicalDevice,
     VkFormat format,
     VkImageType type,
@@ -182,7 +166,7 @@ static VKAPI_ATTR VkResult VKAPI_CALL medusa_GetPhysicalDeviceImageFormatPropert
     return VK_SUCCESS;
 }
 
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateDeviceExtensionProperties(
+VKAPI_ATTR VkResult VKAPI_CALL v3dv_EnumerateDeviceExtensionProperties(
     VkPhysicalDevice physicalDevice,
     const char* pLayerName,
     uint32_t* pPropertyCount,
@@ -207,7 +191,7 @@ static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateDeviceExtensionProperties(
     return VK_SUCCESS;
 }
 
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateDeviceLayerProperties(
+VKAPI_ATTR VkResult VKAPI_CALL v3dv_EnumerateDeviceLayerProperties(
     VkPhysicalDevice physicalDevice,
     uint32_t* pPropertyCount,
     VkLayerProperties* pProperties)
@@ -227,7 +211,7 @@ static VKAPI_ATTR VkResult VKAPI_CALL medusa_EnumerateDeviceLayerProperties(
     return VK_SUCCESS;
 }
 
-static VKAPI_ATTR void VKAPI_CALL medusa_GetPhysicalDeviceSparseImageFormatProperties(
+VKAPI_ATTR void VKAPI_CALL v3dv_GetPhysicalDeviceSparseImageFormatProperties(
     VkPhysicalDevice physicalDevice,
     VkFormat format,
     VkImageType type,
@@ -251,7 +235,7 @@ static VKAPI_ATTR void VKAPI_CALL medusa_GetPhysicalDeviceSparseImageFormatPrope
     }
 }
 
-static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL medusa_GetDeviceProcAddr(
+VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL v3dv_GetDeviceProcAddr(
     VkDevice device,
     const char* pName)
 {
@@ -262,7 +246,7 @@ static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL medusa_GetDeviceProcAddr(
     return NULL;
 }
 
-static VKAPI_ATTR VkResult VKAPI_CALL medusa_CreateDevice(
+VKAPI_ATTR VkResult VKAPI_CALL v3dv_CreateDevice(
     VkPhysicalDevice physicalDevice,
     const VkDeviceCreateInfo* pCreateInfo,
     const VkAllocationCallbacks* pAllocator,
@@ -275,7 +259,7 @@ static VKAPI_ATTR VkResult VKAPI_CALL medusa_CreateDevice(
     return VK_ERROR_INITIALIZATION_FAILED;
 }
 
-static VKAPI_ATTR void VKAPI_CALL medusa_DestroyDevice(
+VKAPI_ATTR void VKAPI_CALL v3dv_DestroyDevice(
     VkDevice device,
     const VkAllocationCallbacks* pAllocator)
 {
@@ -304,19 +288,19 @@ extern "C"
         /* Global functions (no instance required) */
         if (strcmp(pName, "vkCreateInstance") == 0)
         {
-            return (PFN_vkVoidFunction)medusa_CreateInstance;
+            return (PFN_vkVoidFunction)v3dv_CreateInstance;
         }
         if (strcmp(pName, "vkEnumerateInstanceExtensionProperties") == 0)
         {
-            return (PFN_vkVoidFunction)medusa_EnumerateInstanceExtensionProperties;
+            return (PFN_vkVoidFunction)v3dv_EnumerateInstanceExtensionProperties;
         }
         if (strcmp(pName, "vkEnumerateInstanceLayerProperties") == 0)
         {
-            return (PFN_vkVoidFunction)medusa_EnumerateInstanceLayerProperties;
+            return (PFN_vkVoidFunction)v3dv_EnumerateInstanceLayerProperties;
         }
         if (strcmp(pName, "vkEnumerateInstanceVersion") == 0)
         {
-            return (PFN_vkVoidFunction)medusa_EnumerateInstanceVersion;
+            return (PFN_vkVoidFunction)v3dv_EnumerateInstanceVersion;
         }
         if (strcmp(pName, "vkGetInstanceProcAddr") == 0)
         {
@@ -328,7 +312,7 @@ extern "C"
         {
             if (strcmp(pName, "vkDestroyInstance") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_DestroyInstance;
+                return (PFN_vkVoidFunction)v3dv_DestroyInstance;
             }
             if (strcmp(pName, "vkGetInstanceProcAddr") == 0)
             {
@@ -336,55 +320,55 @@ extern "C"
             }
             if (strcmp(pName, "vkEnumeratePhysicalDevices") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_EnumeratePhysicalDevices;
+                return (PFN_vkVoidFunction)v3dv_EnumeratePhysicalDevices;
             }
             if (strcmp(pName, "vkGetPhysicalDeviceFeatures") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_GetPhysicalDeviceFeatures;
+                return (PFN_vkVoidFunction)v3dv_GetPhysicalDeviceFeatures;
             }
             if (strcmp(pName, "vkGetPhysicalDeviceProperties") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_GetPhysicalDeviceProperties;
+                return (PFN_vkVoidFunction)v3dv_GetPhysicalDeviceProperties;
             }
             if (strcmp(pName, "vkGetPhysicalDeviceQueueFamilyProperties") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_GetPhysicalDeviceQueueFamilyProperties;
+                return (PFN_vkVoidFunction)v3dv_GetPhysicalDeviceQueueFamilyProperties;
             }
             if (strcmp(pName, "vkGetPhysicalDeviceMemoryProperties") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_GetPhysicalDeviceMemoryProperties;
+                return (PFN_vkVoidFunction)v3dv_GetPhysicalDeviceMemoryProperties;
             }
             if (strcmp(pName, "vkGetPhysicalDeviceFormatProperties") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_GetPhysicalDeviceFormatProperties;
+                return (PFN_vkVoidFunction)v3dv_GetPhysicalDeviceFormatProperties;
             }
             if (strcmp(pName, "vkGetPhysicalDeviceImageFormatProperties") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_GetPhysicalDeviceImageFormatProperties;
+                return (PFN_vkVoidFunction)v3dv_GetPhysicalDeviceImageFormatProperties;
             }
             if (strcmp(pName, "vkEnumerateDeviceExtensionProperties") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_EnumerateDeviceExtensionProperties;
+                return (PFN_vkVoidFunction)v3dv_EnumerateDeviceExtensionProperties;
             }
             if (strcmp(pName, "vkEnumerateDeviceLayerProperties") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_EnumerateDeviceLayerProperties;
+                return (PFN_vkVoidFunction)v3dv_EnumerateDeviceLayerProperties;
             }
             if (strcmp(pName, "vkGetPhysicalDeviceSparseImageFormatProperties") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_GetPhysicalDeviceSparseImageFormatProperties;
+                return (PFN_vkVoidFunction)v3dv_GetPhysicalDeviceSparseImageFormatProperties;
             }
             if (strcmp(pName, "vkGetDeviceProcAddr") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_GetDeviceProcAddr;
+                return (PFN_vkVoidFunction)v3dv_GetDeviceProcAddr;
             }
             if (strcmp(pName, "vkCreateDevice") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_CreateDevice;
+                return (PFN_vkVoidFunction)v3dv_CreateDevice;
             }
             if (strcmp(pName, "vkDestroyDevice") == 0)
             {
-                return (PFN_vkVoidFunction)medusa_DestroyDevice;
+                return (PFN_vkVoidFunction)v3dv_DestroyDevice;
             }
             /* Add more instance functions as needed */
         }
