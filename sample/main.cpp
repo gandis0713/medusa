@@ -5,12 +5,12 @@
 int main(int argc, char** argv)
 {
     // Initialize logger
-    auto logger = spdlog::default_logger();
-    logger->set_pattern("[%n] [%^%l%$] %v");
-    logger->set_level(spdlog::level::info);
+    // auto logger = spdlog::default_logger();
+    // logger->set_pattern("[%n] [%^%l%$] %v");
+    // logger->set_level(spdlog::level::info);
 
-    spdlog::info("=== Medusa Vulkan Driver Sample ===");
-    spdlog::info("Running on Raspberry Pi 5");
+    // spdlog::info("=== Medusa Vulkan Driver Sample ===");
+    // spdlog::info("Running on Raspberry Pi 5");
 
     // Prepare Vulkan instance creation info
     VkApplicationInfo app_info{};
