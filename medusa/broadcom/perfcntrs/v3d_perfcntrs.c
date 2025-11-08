@@ -9,10 +9,6 @@
 #include "util/ralloc.h"
 #include "v3d_perfcntrs.h"
 
-#define v3dX(x) v3d42_##x
-#include "v3dx_counter.h"
-#undef v3dX
-
 #define v3dX(x) v3d71_##x
 #include "v3dx_counter.h"
 #undef v3dX

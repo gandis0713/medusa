@@ -108,8 +108,6 @@ clif_dump_packet(struct clif_dump *clif, uint32_t offset, const uint8_t *cl,
 {
 
         switch (clif->devinfo->ver) {
-        case 42:
-                return v3d42_clif_dump_packet(clif, offset, cl, size, reloc_mode);
         case 71:
                 return v3d71_clif_dump_packet(clif, offset, cl, size, reloc_mode);
         default:

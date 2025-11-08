@@ -2712,10 +2712,6 @@ v3dv_flag_oom(struct v3dv_cmd_buffer* cmd_buffer, struct v3dv_job* job)
 #ifdef v3dX
 #include "v3dvx_private.h"
 #else
-#define v3dX(x) v3d42_##x
-#include "v3dvx_private.h"
-#undef v3dX
-
 #define v3dX(x) v3d71_##x
 #include "v3dvx_private.h"
 #undef v3dX

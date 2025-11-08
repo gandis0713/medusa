@@ -4,15 +4,16 @@ project(
     medusa_lib
     VERSION 0.0.1
     DESCRIPTION "Vulkan Driver Library for Raspberry Pi 5"
-    LANGUAGES C
+    LANGUAGES C CXX
 )
 
 # Find required packages
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBDRM REQUIRED libdrm)
+pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
 
 # Collect source files
-file(GLOB_RECURSE MEDUSA_SOURCES "*.c")
+file(GLOB_RECURSE MEDUSA_SOURCES "*.c" "*.cpp")
 file(GLOB_RECURSE MEDUSA_HEADERS "*.h")
 
 # Exclude unnecessary directories for V3D Vulkan driver
@@ -181,6 +182,7 @@ target_compile_definitions(medusa PRIVATE
 # Link libraries
 target_link_libraries(medusa PRIVATE
     ${LIBDRM_LIBRARIES}
+    ${WAYLAND_CLIENT_LIBRARIES}
     ${CMAKE_DL_LIBS}
 )
 

@@ -37,11 +37,8 @@
 
 /* Helper to call hw ver specific functions */
 #define v3d_X(devinfo, thing) ({                                \
-        __typeof(&v3d42_##thing) v3d_X_thing;                   \
+        __typeof(&v3d71_##thing) v3d_X_thing;                   \
         switch (devinfo->ver) {                                 \
-        case 42:                                                \
-                v3d_X_thing = &v3d42_##thing;                   \
-                break;                                          \
         case 71:                                                \
                 v3d_X_thing = &v3d71_##thing;                   \
                 break;                                          \
