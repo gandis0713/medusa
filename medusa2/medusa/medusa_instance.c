@@ -117,8 +117,7 @@ fail:
 static void create_physical_device(struct medusa_instance* instance, int32_t render_fd, int32_t display_fd)
 {
     struct medusa_physical_device physical_device;
-    physical_device.render_fd = render_fd;
-    physical_device.primary_fd = display_fd;
+    medusa_physical_device_init(&physical_device, render_fd, display_fd);
 
     instance->physical_device = physical_device;
 }
