@@ -35,7 +35,7 @@ extern "C"
 #endif
 
 #ifndef MEDUSA_LOG_TAG
-#define MEDUSA_LOG_TAG "MESA"
+#define MEDUSA_LOG_TAG "MEDUSA"
 #endif
 
     enum medusa_log_level
@@ -45,13 +45,13 @@ extern "C"
         MEDUSA_LOG_INFO,
         MEDUSA_LOG_DEBUG,
 
-        MESA_NUM_LOG_LEVELS,
+        MEDUSA_NUM_LOG_LEVELS,
     };
 
-#if MESA_DEBUG
-#define MESA_DEFAULT_LOG_LEVEL MEDUSA_LOG_DEBUG
+#if MEDUSA_DEBUG
+#define MEDUSA_DEFAULT_LOG_LEVEL MEDUSA_LOG_DEBUG
 #else
-#define MESA_DEFAULT_LOG_LEVEL MEDUSA_LOG_INFO
+#define MEDUSA_DEFAULT_LOG_LEVEL MEDUSA_LOG_INFO
 #endif
 
 #define MAX_LOG_MESSAGE_LENGTH 4096
@@ -78,7 +78,7 @@ extern "C"
 #define medusa_loge(fmt, ...) medusa_log(MEDUSA_LOG_ERROR, (MEDUSA_LOG_TAG), (fmt), ##__VA_ARGS__)
 #define medusa_logw(fmt, ...) medusa_log(MEDUSA_LOG_WARN, (MEDUSA_LOG_TAG), (fmt), ##__VA_ARGS__)
 #define medusa_logi(fmt, ...) medusa_log(MEDUSA_LOG_INFO, (MEDUSA_LOG_TAG), (fmt), ##__VA_ARGS__)
-#if MESA_DEBUG
+#if MEDUSA_DEBUG
 #define medusa_logd(fmt, ...) medusa_log(MEDUSA_LOG_DEBUG, (MEDUSA_LOG_TAG), (fmt), ##__VA_ARGS__)
 #else
 #define medusa_logd(fmt, ...) __medusa_log_use_args((fmt), ##__VA_ARGS__)
@@ -87,7 +87,7 @@ extern "C"
 #define medusa_loge_v(fmt, va) medusa_log_v(MEDUSA_LOG_ERROR, (MEDUSA_LOG_TAG), (fmt), (va))
 #define medusa_logw_v(fmt, va) medusa_log_v(MEDUSA_LOG_WARN, (MEDUSA_LOG_TAG), (fmt), (va))
 #define medusa_logi_v(fmt, va) medusa_log_v(MEDUSA_LOG_INFO, (MEDUSA_LOG_TAG), (fmt), (va))
-#if MESA_DEBUG
+#if MEDUSA_DEBUG
 #define medusa_logd_v(fmt, va) medusa_log_v(MEDUSA_LOG_DEBUG, (MEDUSA_LOG_TAG), (fmt), (va))
 #else
 #define medusa_logd_v(fmt, va) __medusa_log_use_args((fmt), (va))
@@ -127,7 +127,7 @@ extern "C"
     void _medusa_log_multiline(enum medusa_log_level level, const char* tag, const char* lines);
 #define medusa_log_multiline(level, lines) _medusa_log_multiline(level, (MEDUSA_LOG_TAG), lines)
 
-#if !MESA_DEBUG
+#if !MEDUSA_DEBUG
     /* Suppres -Wunused */
     static inline void PRINTFLIKE(1, 2)
         __medusa_log_use_args(UNUSED const char* format, ...)

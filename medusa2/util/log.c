@@ -81,7 +81,7 @@ level_to_str(enum medusa_log_level l)
         return "info";
     case MEDUSA_LOG_DEBUG:
         return "debug";
-    case MESA_NUM_LOG_LEVELS:
+    case MEDUSA_NUM_LOG_LEVELS:
         break;
     }
 
@@ -91,13 +91,13 @@ level_to_str(enum medusa_log_level l)
 static enum medusa_log_level
 level_from_str(const char* str)
 {
-    for (unsigned l = 0; l < MESA_NUM_LOG_LEVELS; l++)
+    for (unsigned l = 0; l < MEDUSA_NUM_LOG_LEVELS; l++)
     {
         if (strcmp(level_to_str(l), str) == 0)
             return l;
     }
 
-    return MESA_NUM_LOG_LEVELS;
+    return MEDUSA_NUM_LOG_LEVELS;
 }
 
 static uint32_t medusa_log_control;
@@ -126,7 +126,7 @@ medusa_log_init_once(void)
 #endif
     }
 
-    mesa_max_log_level = MESA_DEFAULT_LOG_LEVEL;
+    mesa_max_log_level = MEDUSA_DEFAULT_LOG_LEVEL;
     const char* log_level = os_get_option("MEDUSA_LOG_LEVEL");
     if (log_level != NULL)
         mesa_max_log_level = level_from_str(log_level);
@@ -183,17 +183,17 @@ void medusa_log_if_debug(enum medusa_log_level level, const char* outputString)
     /* Init the local 'debug' var once. */
     if (debug == -1)
     {
-        const char* env = getenv("MESA_DEBUG");
+        const char* env = getenv("MEDUSA_DEBUG");
         bool silent = env && strstr(env, "silent") != NULL;
 #ifndef NDEBUG
-        /* in debug builds, print messages unless MESA_DEBUG="silent" */
+        /* in debug builds, print messages unless MEDUSA_DEBUG="silent" */
         if (silent)
             debug = 0;
         else
             debug = 1;
 #else
-        /* in release builds, print messages if any MESA_DEBUG value other than
-         * MESA_DEBUG="silent" is set
+        /* in release builds, print messages if any MEDUSA_DEBUG value other than
+         * MEDUSA_DEBUG="silent" is set
          */
         debug = env && !silent;
 #endif
@@ -332,7 +332,7 @@ level_to_syslog(enum medusa_log_level l)
         return LOG_INFO;
     case MEDUSA_LOG_DEBUG:
         return LOG_DEBUG;
-    case MESA_NUM_LOG_LEVELS:
+    case MEDUSA_NUM_LOG_LEVELS:
         break;
     }
 
@@ -372,7 +372,7 @@ level_to_android(enum medusa_log_level l)
         return ANDROID_LOG_INFO;
     case MEDUSA_LOG_DEBUG:
         return ANDROID_LOG_DEBUG;
-    case MESA_NUM_LOG_LEVELS:
+    case MEDUSA_NUM_LOG_LEVELS:
         break;
     }
 
@@ -474,12 +474,12 @@ void medusa_log_v(enum medusa_log_level level, const char* tag, const char* form
 
     medusa_log_init();
 
-    if (unlikely(mesa_max_log_level >= MESA_NUM_LOG_LEVELS))
+    if (unlikely(mesa_max_log_level >= MEDUSA_NUM_LOG_LEVELS))
     {
         /* Set to the default since this function will call back into medusa_log()
          * and we don't want to recurse back into the once.
          */
-        mesa_max_log_level = MESA_DEFAULT_LOG_LEVEL;
+        mesa_max_log_level = MEDUSA_DEFAULT_LOG_LEVEL;
         mesa_warn_invalid_level();
     }
 
