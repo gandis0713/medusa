@@ -71,37 +71,41 @@ static void try_display_device(const char* path, int32_t* fd)
     if (!drmIsKMS(*fd))
         goto fail;
 
-    /* If using VK_KHR_display, we require the fd to have a connected output.
-     * We need to use this strategy because Raspberry Pi 5 can load different
-     * drivers for different types of connectors and the one with a connected
-     * output may not be vc4, which unlike Raspberry Pi 4, doesn't drive the
-     * DSI output for example.
-     */
-    drmModeResPtr mode_res = drmModeGetResources(*fd);
-    if (!mode_res)
+    // medusa tests on wayland, so skip check
+    if (false)
     {
-        medusa_loge("Failed to get DRM mode resources: %s\n", strerror(errno));
-        goto fail;
+        /* If using VK_KHR_display, we require the fd to have a connected output.
+         * We need to use this strategy because Raspberry Pi 5 can load different
+         * drivers for different types of connectors and the one with a connected
+         * output may not be vc4, which unlike Raspberry Pi 4, doesn't drive the
+         * DSI output for example.
+         */
+        drmModeResPtr mode_res = drmModeGetResources(*fd);
+        if (!mode_res)
+        {
+            medusa_loge("Failed to get DRM mode resources: %s\n", strerror(errno));
+            goto fail;
+        }
+
+        drmModeConnection connection = DRM_MODE_DISCONNECTED;
+
+        /* Only use a display device if there is at least one connected connector */
+        for (int c = 0; c < mode_res->count_connectors && connection == DRM_MODE_DISCONNECTED; c++)
+        {
+            drmModeConnectorPtr connector = drmModeGetConnector(*fd, mode_res->connectors[c]);
+
+            if (!connector)
+                continue;
+
+            connection = connector->connection;
+            drmModeFreeConnector(connector);
+        }
+
+        drmModeFreeResources(mode_res);
+
+        if (connection == DRM_MODE_DISCONNECTED)
+            goto fail;
     }
-
-    drmModeConnection connection = DRM_MODE_DISCONNECTED;
-
-    /* Only use a display device if there is at least one connected connector */
-    for (int c = 0; c < mode_res->count_connectors && connection == DRM_MODE_DISCONNECTED; c++)
-    {
-        drmModeConnectorPtr connector = drmModeGetConnector(*fd, mode_res->connectors[c]);
-
-        if (!connector)
-            continue;
-
-        connection = connector->connection;
-        drmModeFreeConnector(connector);
-    }
-
-    drmModeFreeResources(mode_res);
-
-    if (connection == DRM_MODE_DISCONNECTED)
-        goto fail;
 
     return;
 
@@ -125,6 +129,7 @@ static void enumerate_physical_devices(struct medusa_instance* instance)
     int max_devices;
 
     max_devices = drmGetDevices2(0, devices, ARRAY_SIZE(devices));
+    medusa_logi("Found %d DRM devices\n", max_devices);
     if (max_devices < 1)
     {
         medusa_loge("No DRM devices found\n");
@@ -158,6 +163,17 @@ static void enumerate_physical_devices(struct medusa_instance* instance)
             break;
     }
 
+    if (render_fd < 0 || primary_fd < 0)
+    {
+        medusa_loge("Failed to find suitable DRM devices\n");
+        if (render_fd >= 0)
+            close(render_fd);
+        if (primary_fd >= 0)
+            close(primary_fd);
+        return;
+    }
+
+    medusa_logi("Using render node fd %d and primary fd %d\n", render_fd, primary_fd);
     create_physical_device(instance, render_fd, primary_fd);
 
     drmFreeDevices(devices, max_devices);
@@ -178,8 +194,8 @@ struct medusa_instance* medusa_instance_create()
 
 void medusa_instance_destroy(struct medusa_instance* instance)
 {
-    // close(instance->physical_device.render_fd);
-    // close(instance->physical_device.primary_fd);
+    close(instance->physical_device.render_fd);
+    close(instance->physical_device.primary_fd);
 
     if (!instance)
         return;
