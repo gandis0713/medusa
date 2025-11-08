@@ -6,11 +6,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "[RPI5][arm64] Sample",
+            "name": "[RPI5][arm64] vkcube",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/arm64-rpi5-ninja/debug/sample/medusa_sample",
-            "args": [],
+            "program": "/usr/bin/vkcube",
+            "args": [
+                "--wsi",
+                "wayland"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "MIMode": "gdb",
@@ -25,6 +28,17 @@
                     "value": "${workspaceFolder}/build/arm64-rpi5-ninja/debug/medusa/medusa_icd.json"
                 }
             ],
+        },
+        {
+            "name": "[RPI5][arm64] Sample",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/arm64-rpi5-ninja/debug/medusa2/medusa2_sample",
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "targetArchitecture": "arm64",
+            "environment": [],
         }
     ]
 }
