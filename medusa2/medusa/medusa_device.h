@@ -8,11 +8,9 @@ extern "C"
 {
 #endif
 
-    struct device
+    struct medusa_device
     {
     };
-
-    void print_memory_info();
 
 #ifdef __cplusplus
 }
