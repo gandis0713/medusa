@@ -21,13 +21,26 @@ add_executable(medusa2_sample
     ${srcs}
 )
 
+include(CheckIncludeFile)
+check_include_file(endian.h HAVE_ENDIAN_H)
+if(HAVE_ENDIAN_H)
+    target_compile_definitions(medusa2_sample PRIVATE 
+    HAVE_ENDIAN_H)
+endif()
+
+include(CheckStructHasMember)
+check_struct_has_member("struct timespec" tv_sec "time.h" HAVE_STRUCT_TIMESPEC)
+if(HAVE_STRUCT_TIMESPEC)
+    target_compile_definitions(medusa2_sample PRIVATE HAVE_STRUCT_TIMESPEC)
+endif()
+
 MESSAGE(STATUS "medusa2_sample source files: ${srcs}")
 
 target_include_directories(medusa2_sample
     PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/device
+    ${CMAKE_CURRENT_SOURCE_DIR}/medusa
 )
 
 # Link Vulkan loader and spdlog (for logging)
@@ -35,6 +48,10 @@ target_include_directories(medusa2_sample
 target_link_libraries(medusa2_sample
     PRIVATE
     spdlog::spdlog
+)
+
+target_compile_definitions(medusa2_sample PRIVATE
+    HAVE_PTHREAD
 )
 
 # Set compile options
