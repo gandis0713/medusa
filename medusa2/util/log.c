@@ -1,143 +1,579 @@
-#include "log.h"
+/*
+ * Copyright © 2017 Google, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 
-#include <stdio.h>
+#include "util/log.h"
+#include "c11/threads.h"
+#include "util/detect_os.h"
+#include "util/ralloc.h"
+#include "util/u_debug.h"
 #include <stdarg.h>
-#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-/* ANSI color codes */
-#define COLOR_RESET   "\033[0m"
-#define COLOR_GRAY    "\033[90m"
-#define COLOR_CYAN    "\033[36m"
-#define COLOR_GREEN   "\033[32m"
-#define COLOR_YELLOW  "\033[33m"
-#define COLOR_RED     "\033[31m"
+#if DETECT_OS_POSIX
+#include "util/u_process.h"
+#include <syslog.h>
+#endif
 
-/* Global logger state */
-static struct {
-    char name[256];
-    int level;
-    int initialized;
-} g_logger = {
-    .name = "medusa",
-    .level = LOG_LEVEL_INFO,
-    .initialized = 0
+#if DETECT_OS_ANDROID
+#include <android/log.h>
+#endif
+
+#if DETECT_OS_WINDOWS
+#include <windows.h>
+#endif
+
+enum medusa_log_control
+{
+    MEDUSA_LOG_CONTROL_NULL = 1 << 0,
+    MEDUSA_LOG_CONTROL_FILE = 1 << 1,
+    MEDUSA_LOG_CONTROL_SYSLOG = 1 << 2,
+    MEDUSA_LOG_CONTROL_ANDROID = 1 << 3,
+    MEDUSA_LOG_CONTROL_WINDBG = 1 << 4,
+    MEDUSA_LOG_CONTROL_LOGGER_MASK = 0xff,
+
+    MEDUSA_LOG_CONTROL_WAIT = 1 << 8,
 };
 
-void log_init(const char* name, int level)
+static const struct debug_control medusa_log_control_options[] = {
+    /* loggers */
+    { "null", MEDUSA_LOG_CONTROL_NULL },
+    { "file", MEDUSA_LOG_CONTROL_FILE },
+    { "syslog", MEDUSA_LOG_CONTROL_SYSLOG },
+    { "android", MEDUSA_LOG_CONTROL_ANDROID },
+    { "windbg", MEDUSA_LOG_CONTROL_WINDBG },
+    /* flags */
+    { "wait", MEDUSA_LOG_CONTROL_WAIT },
+    { NULL, 0 },
+};
+
+static inline const char*
+level_to_str(enum medusa_log_level l)
 {
-    if (name && name[0] != '\0')
+    switch (l)
     {
-        strncpy(g_logger.name, name, sizeof(g_logger.name) - 1);
-        g_logger.name[sizeof(g_logger.name) - 1] = '\0';
+    case MEDUSA_LOG_ERROR:
+        return "error";
+    case MEDUSA_LOG_WARN:
+        return "warning";
+    case MEDUSA_LOG_INFO:
+        return "info";
+    case MEDUSA_LOG_DEBUG:
+        return "debug";
+    case MESA_NUM_LOG_LEVELS:
+        break;
     }
 
-    g_logger.level = level;
-    g_logger.initialized = 1;
+    UNREACHABLE("bad medusa_log_level");
 }
 
-/* Helper function to get current timestamp */
-static void get_timestamp(char* buffer, size_t size)
+static enum medusa_log_level
+level_from_str(const char* str)
 {
-    time_t now = time(NULL);
-    struct tm* tm_info = localtime(&now);
-    strftime(buffer, size, "%H:%M:%S", tm_info);
-}
-
-/* Helper function to get level string and color */
-static const char* get_level_string(int level)
-{
-    switch (level)
+    for (unsigned l = 0; l < MESA_NUM_LOG_LEVELS; l++)
     {
-        case LOG_LEVEL_TRACE:    return "trace";
-        case LOG_LEVEL_DEBUG:    return "debug";
-        case LOG_LEVEL_INFO:     return "info";
-        case LOG_LEVEL_WARN:     return "warn";
-        case LOG_LEVEL_ERROR:    return "error";
-        default:                 return "unknown";
-    }
-}
-
-static const char* get_level_color(int level)
-{
-    switch (level)
-    {
-        case LOG_LEVEL_TRACE:    return COLOR_GRAY;
-        case LOG_LEVEL_DEBUG:    return COLOR_CYAN;
-        case LOG_LEVEL_INFO:     return COLOR_GREEN;
-        case LOG_LEVEL_WARN:     return COLOR_YELLOW;
-        case LOG_LEVEL_ERROR:    return COLOR_RED;
-        default:                 return COLOR_RESET;
-    }
-}
-
-/* Internal logging function */
-static void log_message(int level, const char* fmt, va_list args)
-{
-    /* Initialize logger if not already done */
-    if (!g_logger.initialized)
-    {
-        log_init(NULL, LOG_LEVEL_INFO);
+        if (strcmp(level_to_str(l), str) == 0)
+            return l;
     }
 
-    /* Check if this message should be logged */
-    if (level < g_logger.level)
+    return MESA_NUM_LOG_LEVELS;
+}
+
+static uint32_t medusa_log_control;
+static FILE* medusa_log_file;
+static enum medusa_log_level mesa_max_log_level;
+
+static void
+medusa_log_init_once(void)
+{
+    medusa_log_control = parse_debug_string(os_get_option("MEDUSA_LOG"),
+                                            medusa_log_control_options);
+
+    if (!(medusa_log_control & MEDUSA_LOG_CONTROL_LOGGER_MASK))
     {
+        /* pick the default loggers */
+#if DETECT_OS_ANDROID
+        medusa_log_control |= MEDUSA_LOG_CONTROL_ANDROID;
+#else
+        medusa_log_control |= MEDUSA_LOG_CONTROL_FILE;
+#endif
+
+#if DETECT_OS_WINDOWS
+        /* stderr from windows applications without console is not usually
+         * visible, so communicate with the debugger instead */
+        medusa_log_control |= MEDUSA_LOG_CONTROL_WINDBG;
+#endif
+    }
+
+    mesa_max_log_level = MESA_DEFAULT_LOG_LEVEL;
+    const char* log_level = os_get_option("MEDUSA_LOG_LEVEL");
+    if (log_level != NULL)
+        mesa_max_log_level = level_from_str(log_level);
+
+    medusa_log_file = stderr;
+
+#if !DETECT_OS_WINDOWS
+    if (__normal_user())
+    {
+        const char* log_file = os_get_option("MEDUSA_LOG_FILE");
+        if (log_file)
+        {
+            FILE* fp = fopen(log_file, "w");
+            if (fp)
+            {
+                medusa_log_file = fp;
+                medusa_log_control |= MEDUSA_LOG_CONTROL_FILE;
+            }
+        }
+    }
+#endif
+
+#if DETECT_OS_POSIX
+    if (medusa_log_control & MEDUSA_LOG_CONTROL_SYSLOG)
+        openlog(util_get_process_name(), LOG_NDELAY | LOG_PID, LOG_USER);
+#endif
+}
+
+static void
+medusa_log_init(void)
+{
+    static once_flag once = ONCE_FLAG_INIT;
+    call_once(&once, medusa_log_init_once);
+}
+
+static void
+mesa_warn_invalid_level_once(void)
+{
+    const char* log_level = os_get_option("MEDUSA_LOG_LEVEL");
+    medusa_logw("Invalid log level: \"%s\"", log_level);
+}
+
+static void
+mesa_warn_invalid_level(void)
+{
+    static once_flag once = ONCE_FLAG_INIT;
+    call_once(&once, mesa_warn_invalid_level_once);
+}
+
+void medusa_log_if_debug(enum medusa_log_level level, const char* outputString)
+{
+    static int debug = -1;
+
+    /* Init the local 'debug' var once. */
+    if (debug == -1)
+    {
+        const char* env = getenv("MESA_DEBUG");
+        bool silent = env && strstr(env, "silent") != NULL;
+#ifndef NDEBUG
+        /* in debug builds, print messages unless MESA_DEBUG="silent" */
+        if (silent)
+            debug = 0;
+        else
+            debug = 1;
+#else
+        /* in release builds, print messages if any MESA_DEBUG value other than
+         * MESA_DEBUG="silent" is set
+         */
+        debug = env && !silent;
+#endif
+    }
+
+    /* Now only print the string if we're required to do so. */
+    if (debug)
+        medusa_log(level, "Mesa", "%s", outputString);
+}
+
+enum logger_vasnprintf_affix
+{
+    LOGGER_VASNPRINTF_AFFIX_TAG = 1 << 0,
+    LOGGER_VASNPRINTF_AFFIX_LEVEL = 1 << 1,
+    LOGGER_VASNPRINTF_AFFIX_NEWLINE = 1 << 2,
+};
+
+/* Try vsnprintf first and fall back to vasprintf if buf is too small.  This
+ * function handles all errors and never fails.
+ */
+static char*
+logger_vasnprintf(char* buf,
+                  int size,
+                  int affixes,
+                  enum medusa_log_level level,
+                  const char* tag,
+                  const char* format,
+                  va_list in_va)
+{
+    struct
+    {
+        char* cur;
+        int rem;
+        int total;
+        bool invalid;
+    } state = {
+        .cur = buf,
+        .rem = size,
+    };
+
+    va_list va;
+    va_copy(va, in_va);
+
+#define APPEND(state, func, ...)                           \
+    do                                                     \
+    {                                                      \
+        int ret = func(state.cur, state.rem, __VA_ARGS__); \
+        if (ret < 0)                                       \
+        {                                                  \
+            state.invalid = true;                          \
+        }                                                  \
+        else                                               \
+        {                                                  \
+            state.total += ret;                            \
+            if (ret >= state.rem)                          \
+                ret = state.rem;                           \
+            state.cur += ret;                              \
+            state.rem -= ret;                              \
+        }                                                  \
+    } while (false)
+
+    if (affixes & LOGGER_VASNPRINTF_AFFIX_TAG)
+        APPEND(state, snprintf, "%s: ", tag);
+    if (affixes & LOGGER_VASNPRINTF_AFFIX_LEVEL)
+        APPEND(state, snprintf, "%s: ", level_to_str(level));
+
+    APPEND(state, vsnprintf, format, va);
+
+    if (affixes & LOGGER_VASNPRINTF_AFFIX_NEWLINE)
+    {
+        if (state.cur == buf || state.cur[-1] != '\n')
+            APPEND(state, snprintf, "\n");
+    }
+#undef APPEND
+
+    assert(size >= 64);
+    if (state.invalid)
+    {
+        strncpy(buf, "invalid message format", size);
+    }
+    else if (state.total >= size)
+    {
+        /* print again into alloc to avoid truncation */
+        void* alloc = malloc(state.total + 1);
+        if (alloc)
+        {
+            buf = logger_vasnprintf(alloc, state.total + 1, affixes, level, tag,
+                                    format, in_va);
+            assert(buf == alloc);
+        }
+        else
+        {
+            /* pretty-truncate the message */
+            strncpy(buf + size - 4, "...", 4);
+        }
+    }
+
+    va_end(va);
+
+    return buf;
+}
+
+static void
+logger_file(enum medusa_log_level level,
+            const char* tag,
+            const char* format,
+            va_list va)
+{
+    FILE* fp = medusa_log_file;
+    char local_msg[1024];
+    char* msg = logger_vasnprintf(local_msg, sizeof(local_msg),
+                                  LOGGER_VASNPRINTF_AFFIX_TAG |
+                                      LOGGER_VASNPRINTF_AFFIX_LEVEL |
+                                      LOGGER_VASNPRINTF_AFFIX_NEWLINE,
+                                  level, tag, format, va);
+
+    fprintf(fp, "%s", msg);
+    fflush(fp);
+
+    if (msg != local_msg)
+        free(msg);
+}
+
+#if DETECT_OS_POSIX
+
+static inline int
+level_to_syslog(enum medusa_log_level l)
+{
+    switch (l)
+    {
+    case MEDUSA_LOG_ERROR:
+        return LOG_ERR;
+    case MEDUSA_LOG_WARN:
+        return LOG_WARNING;
+    case MEDUSA_LOG_INFO:
+        return LOG_INFO;
+    case MEDUSA_LOG_DEBUG:
+        return LOG_DEBUG;
+    case MESA_NUM_LOG_LEVELS:
+        break;
+    }
+
+    UNREACHABLE("bad medusa_log_level");
+}
+
+static void
+logger_syslog(enum medusa_log_level level,
+              const char* tag,
+              const char* format,
+              va_list va)
+{
+    char local_msg[1024];
+    char* msg = logger_vasnprintf(local_msg, sizeof(local_msg),
+                                  LOGGER_VASNPRINTF_AFFIX_TAG, level, tag, format, va);
+
+    syslog(level_to_syslog(level), "%s", msg);
+
+    if (msg != local_msg)
+        free(msg);
+}
+
+#endif /* DETECT_OS_POSIX */
+
+#if DETECT_OS_ANDROID
+
+static inline android_LogPriority
+level_to_android(enum medusa_log_level l)
+{
+    switch (l)
+    {
+    case MEDUSA_LOG_ERROR:
+        return ANDROID_LOG_ERROR;
+    case MEDUSA_LOG_WARN:
+        return ANDROID_LOG_WARN;
+    case MEDUSA_LOG_INFO:
+        return ANDROID_LOG_INFO;
+    case MEDUSA_LOG_DEBUG:
+        return ANDROID_LOG_DEBUG;
+    case MESA_NUM_LOG_LEVELS:
+        break;
+    }
+
+    UNREACHABLE("bad medusa_log_level");
+}
+
+static void
+logger_android(enum medusa_log_level level,
+               const char* tag,
+               const char* format,
+               va_list va)
+{
+    /* Android can truncate/drop messages
+     *
+     *  - the internal buffer for vsnprintf has a fixed size (usually 1024)
+     *  - the socket to logd is non-blocking
+     *
+     * and provides no way to detect.  Try our best.
+     */
+    char local_msg[1024];
+    char* msg = logger_vasnprintf(local_msg, sizeof(local_msg), 0, level, tag,
+                                  format, va);
+
+    __android_log_write(level_to_android(level), tag, msg);
+
+    if (msg != local_msg)
+        free(msg);
+
+    /* increase the chance of logd doing its part */
+    if (medusa_log_control & MEDUSA_LOG_CONTROL_WAIT)
+        thrd_yield();
+}
+
+#endif /* DETECT_OS_ANDROID */
+
+#if DETECT_OS_WINDOWS
+
+static void
+logger_windbg(enum medusa_log_level level,
+              const char* tag,
+              const char* format,
+              va_list va)
+{
+    char local_msg[1024];
+    char* msg = logger_vasnprintf(local_msg, sizeof(local_msg),
+                                  LOGGER_VASNPRINTF_AFFIX_TAG |
+                                      LOGGER_VASNPRINTF_AFFIX_LEVEL |
+                                      LOGGER_VASNPRINTF_AFFIX_NEWLINE,
+                                  level, tag, format, va);
+
+    OutputDebugStringA(msg);
+
+    if (msg != local_msg)
+        free(msg);
+}
+
+#endif /* DETECT_OS_WINDOWS */
+
+/* This is for use with debug functions that take a FILE, such as
+ * nir_print_shader, although switching to nir_log_shader* is preferred.
+ */
+FILE* medusa_log_get_file(void)
+{
+    medusa_log_init();
+    return medusa_log_file;
+}
+
+void medusa_log(enum medusa_log_level level, const char* tag, const char* format, ...)
+{
+    va_list va;
+
+    va_start(va, format);
+    medusa_log_v(level, tag, format, va);
+    va_end(va);
+}
+
+void medusa_log_v(enum medusa_log_level level, const char* tag, const char* format,
+                  va_list va)
+{
+    static const struct
+    {
+        enum medusa_log_control bit;
+        void (*log)(enum medusa_log_level level,
+                    const char* tag,
+                    const char* format,
+                    va_list va);
+    } loggers[] = {
+        { MEDUSA_LOG_CONTROL_FILE, logger_file },
+#if DETECT_OS_POSIX
+        { MEDUSA_LOG_CONTROL_SYSLOG, logger_syslog },
+#endif
+#if DETECT_OS_ANDROID
+        { MEDUSA_LOG_CONTROL_ANDROID, logger_android },
+#endif
+#if DETECT_OS_WINDOWS
+        { MEDUSA_LOG_CONTROL_WINDBG, logger_windbg },
+#endif
+    };
+
+    medusa_log_init();
+
+    if (unlikely(mesa_max_log_level >= MESA_NUM_LOG_LEVELS))
+    {
+        /* Set to the default since this function will call back into medusa_log()
+         * and we don't want to recurse back into the once.
+         */
+        mesa_max_log_level = MESA_DEFAULT_LOG_LEVEL;
+        mesa_warn_invalid_level();
+    }
+
+    if (level > mesa_max_log_level)
         return;
+
+    for (uint32_t i = 0; i < ARRAY_SIZE(loggers); i++)
+    {
+        if (medusa_log_control & loggers[i].bit)
+        {
+            va_list copy;
+            va_copy(copy, va);
+            loggers[i].log(level, tag, format, copy);
+            va_end(copy);
+        }
     }
-
-    char timestamp[32];
-    get_timestamp(timestamp, sizeof(timestamp));
-
-    /* Print formatted log message: [name] [timestamp] [level] message */
-    fprintf(stderr, "[%s] %s[%s] [%s]%s ",
-            g_logger.name,
-            get_level_color(level),
-            timestamp,
-            get_level_string(level),
-            COLOR_RESET);
-
-    vfprintf(stderr, fmt, args);
-    fprintf(stderr, "\n");
-    fflush(stderr);
 }
 
-void log_trace(const char* fmt, ...)
+void _medusa_log(const char* fmtString, ...)
 {
+    char s[MAX_LOG_MESSAGE_LENGTH];
     va_list args;
-    va_start(args, fmt);
-    log_message(LOG_LEVEL_TRACE, fmt, args);
+    va_start(args, fmtString);
+    vsnprintf(s, MAX_LOG_MESSAGE_LENGTH, fmtString, args);
     va_end(args);
+    medusa_log_if_debug(MEDUSA_LOG_INFO, s);
 }
 
-void log_debug(const char* fmt, ...)
+void _medusa_log_direct(const char* string)
 {
-    va_list args;
-    va_start(args, fmt);
-    log_message(LOG_LEVEL_DEBUG, fmt, args);
-    va_end(args);
+    medusa_log_if_debug(MEDUSA_LOG_INFO, string);
 }
 
-void log_info(const char* fmt, ...)
+struct log_stream*
+_medusa_log_stream_create(enum medusa_log_level level, const char* tag)
 {
-    va_list args;
-    va_start(args, fmt);
-    log_message(LOG_LEVEL_INFO, fmt, args);
-    va_end(args);
+    struct log_stream* stream = ralloc(NULL, struct log_stream);
+    stream->level = level;
+    stream->tag = tag;
+    stream->msg = ralloc_strdup(stream, "");
+    stream->pos = 0;
+    return stream;
 }
 
-void log_warn(const char* fmt, ...)
+void medusa_log_stream_destroy(struct log_stream* stream)
 {
-    va_list args;
-    va_start(args, fmt);
-    log_message(LOG_LEVEL_WARN, fmt, args);
-    va_end(args);
+    /* If you left trailing stuff in the log stream, flush it out as a line. */
+    if (stream->pos != 0)
+        medusa_log(stream->level, stream->tag, "%s", stream->msg);
+
+    ralloc_free(stream);
 }
 
-void log_error(const char* fmt, ...)
+static void
+medusa_log_stream_flush(struct log_stream* stream, size_t scan_offset)
 {
-    va_list args;
-    va_start(args, fmt);
-    log_message(LOG_LEVEL_ERROR, fmt, args);
-    va_end(args);
+    char* end;
+    char* next = stream->msg;
+    while ((end = strchr(stream->msg + scan_offset, '\n')))
+    {
+        *end = 0;
+        medusa_log(stream->level, stream->tag, "%s", next);
+        next = end + 1;
+        scan_offset = next - stream->msg;
+    }
+    if (next != stream->msg)
+    {
+        /* Clear out the lines we printed and move any trailing chars to the start. */
+        size_t remaining = stream->msg + stream->pos - next;
+        memmove(stream->msg, next, remaining);
+        stream->pos = remaining;
+    }
+}
+
+void medusa_log_stream_printf(struct log_stream* stream, const char* format, ...)
+{
+    size_t old_pos = stream->pos;
+
+    va_list va;
+    va_start(va, format);
+    ralloc_vasprintf_rewrite_tail(&stream->msg, &stream->pos, format, va);
+    va_end(va);
+
+    medusa_log_stream_flush(stream, old_pos);
+}
+
+void _medusa_log_multiline(enum medusa_log_level level, const char* tag, const char* lines)
+{
+    struct log_stream tmp = {
+        .level = level,
+        .tag = tag,
+        .msg = strdup(lines),
+        .pos = strlen(lines),
+    };
+    medusa_log_stream_flush(&tmp, 0);
+    free(tmp.msg);
 }
