@@ -21,11 +21,11 @@
             "environment": [
                 {
                     "name": "LD_LIBRARY_PATH",
-                    "value": "${workspaceFolder}/build/arm64-rpi5-ninja/debug/medusa:${env:LD_LIBRARY_PATH}"
+                    "value": "${workspaceFolder}/build/arm64-rpi5-ninja/debug/medusa2:${env:LD_LIBRARY_PATH}"
                 },
                 {
                     "name": "VK_ICD_FILENAMES",
-                    "value": "${workspaceFolder}/build/arm64-rpi5-ninja/debug/medusa/medusa_icd.json"
+                    "value": "${workspaceFolder}/build/arm64-rpi5-ninja/debug/medusa2/medusa_icd.json"
                 }
             ],
         },

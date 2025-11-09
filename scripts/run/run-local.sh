@@ -127,9 +127,9 @@ if [ ! -f "${ICD_JSON_PATH}" ]; then
     exit 1
 fi
 
-if [ ! -f "${ICD_LIB_PATH}/libmedusa_icd.so" ]; then
-    print_error "ICD library not found: ${ICD_LIB_PATH}/libmedusa_icd.so"
-    print_info "Please rebuild the project to generate libmedusa_icd.so"
+if [ ! -f "${ICD_LIB_PATH}/libmedusa2.so" ]; then
+    print_error "ICD library not found: ${ICD_LIB_PATH}/libmedusa2.so"
+    print_info "Please rebuild the project to generate libmedusa2.so"
     exit 1
 fi
 
