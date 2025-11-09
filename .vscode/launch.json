@@ -33,7 +33,7 @@
             "name": "[RPI5][arm64] Sample",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/arm64-rpi5-ninja/debug/medusa2/medusa2_sample",
+            "program": "${workspaceFolder}/build/arm64-rpi5-ninja/debug/medusa3/medusa3_sample",
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "MIMode": "gdb",
