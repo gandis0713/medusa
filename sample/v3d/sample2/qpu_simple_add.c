@@ -279,121 +279,6 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     instr.alu.mul.op = V3D_QPU_M_NOP;
     emit_qpu_instr(devinfo, &instr);
 
-    // 이제 루프 제거 - 각 쓰레드가 하나의 요소만 처리
-    if (false)  // 루프 비활성화
-    {
-        // TMU 읽기: input_a[i]
-        memset(&instr, 0, sizeof(instr));
-        instr.type = V3D_QPU_INSTR_TYPE_ALU;
-        instr.alu.add.op = V3D_QPU_A_MOV;
-        instr.alu.add.a.raddr = 0;  // rf0 (input_a 주소)
-        instr.alu.add.waddr = V3D_QPU_WADDR_TMUA;
-        instr.alu.add.magic_write = true;
-        instr.alu.mul.op = V3D_QPU_M_NOP;
-        emit_qpu_instr(devinfo, &instr);
-
-        // TMU 읽기: input_b[i]
-        memset(&instr, 0, sizeof(instr));
-        instr.type = V3D_QPU_INSTR_TYPE_ALU;
-        instr.alu.add.op = V3D_QPU_A_MOV;
-        instr.alu.add.a.raddr = 1;  // rf1 (input_b 주소)
-        instr.alu.add.waddr = V3D_QPU_WADDR_TMUA;
-        instr.alu.add.magic_write = true;
-        instr.alu.mul.op = V3D_QPU_M_NOP;
-        emit_qpu_instr(devinfo, &instr);
-
-        // NOP (TMU 레이턴시)
-        memset(&instr, 0, sizeof(instr));
-        instr.type = V3D_QPU_INSTR_TYPE_ALU;
-        instr.alu.add.op = V3D_QPU_A_NOP;
-        instr.alu.mul.op = V3D_QPU_M_NOP;
-        emit_qpu_instr(devinfo, &instr);
-
-        // ldtmu: rf3 = input_a[i]
-        memset(&instr, 0, sizeof(instr));
-        instr.type = V3D_QPU_INSTR_TYPE_ALU;
-        instr.sig.ldtmu = true;
-        instr.sig_addr = 3;
-        instr.sig_magic = false;
-        instr.alu.add.op = V3D_QPU_A_NOP;
-        instr.alu.mul.op = V3D_QPU_M_NOP;
-        emit_qpu_instr(devinfo, &instr);
-
-        // ldtmu: rf4 = input_b[i]
-        memset(&instr, 0, sizeof(instr));
-        instr.type = V3D_QPU_INSTR_TYPE_ALU;
-        instr.sig.ldtmu = true;
-        instr.sig_addr = 4;
-        instr.sig_magic = false;
-        instr.alu.add.op = V3D_QPU_A_NOP;
-        instr.alu.mul.op = V3D_QPU_M_NOP;
-        emit_qpu_instr(devinfo, &instr);
-
-        // 덧셈 수행: rf5 = rf3 + rf4
-        memset(&instr, 0, sizeof(instr));
-        instr.type = V3D_QPU_INSTR_TYPE_ALU;
-        instr.alu.add.op = V3D_QPU_A_ADD;
-        instr.alu.add.a.raddr = 3;  // rf3
-        instr.alu.add.b.raddr = 4;  // rf4
-        instr.alu.add.waddr = 5;    // rf5
-        instr.alu.add.magic_write = false;
-        instr.alu.mul.op = V3D_QPU_M_NOP;
-        emit_qpu_instr(devinfo, &instr);
-
-        // TMU 쓰기: tmud = rf5
-        memset(&instr, 0, sizeof(instr));
-        instr.type = V3D_QPU_INSTR_TYPE_ALU;
-        instr.alu.add.op = V3D_QPU_A_MOV;
-        instr.alu.add.a.raddr = 5;  // rf5 (덧셈 결과)
-        instr.alu.add.waddr = V3D_QPU_WADDR_TMUD;
-        instr.alu.add.magic_write = true;
-        instr.alu.mul.op = V3D_QPU_M_NOP;
-        emit_qpu_instr(devinfo, &instr);
-
-        // TMU 쓰기 시작: tmua = rf2 (output 주소)
-        memset(&instr, 0, sizeof(instr));
-        instr.type = V3D_QPU_INSTR_TYPE_ALU;
-        instr.alu.add.op = V3D_QPU_A_MOV;
-        instr.alu.add.a.raddr = 2;  // rf2 (output 주소)
-        instr.alu.add.waddr = V3D_QPU_WADDR_TMUA;
-        instr.alu.add.magic_write = true;
-        instr.alu.mul.op = V3D_QPU_M_NOP;
-        emit_qpu_instr(devinfo, &instr);
-
-        // 주소 증가: rf0 += 4
-        memset(&instr, 0, sizeof(instr));
-        instr.type = V3D_QPU_INSTR_TYPE_ALU;
-        instr.alu.add.op = V3D_QPU_A_ADD;
-        instr.alu.add.a.raddr = 0;  // rf0
-        instr.alu.add.b.raddr = 6;  // rf6 (값 4)
-        instr.alu.add.waddr = 0;
-        instr.alu.add.magic_write = false;
-        instr.alu.mul.op = V3D_QPU_M_NOP;
-        emit_qpu_instr(devinfo, &instr);
-
-        // 주소 증가: rf1 += 4
-        memset(&instr, 0, sizeof(instr));
-        instr.type = V3D_QPU_INSTR_TYPE_ALU;
-        instr.alu.add.op = V3D_QPU_A_ADD;
-        instr.alu.add.a.raddr = 1;  // rf1
-        instr.alu.add.b.raddr = 6;  // rf6 (값 4)
-        instr.alu.add.waddr = 1;
-        instr.alu.add.magic_write = false;
-        instr.alu.mul.op = V3D_QPU_M_NOP;
-        emit_qpu_instr(devinfo, &instr);
-
-        // 주소 증가: rf2 += 4
-        memset(&instr, 0, sizeof(instr));
-        instr.type = V3D_QPU_INSTR_TYPE_ALU;
-        instr.alu.add.op = V3D_QPU_A_ADD;
-        instr.alu.add.a.raddr = 2;  // rf2
-        instr.alu.add.b.raddr = 6;  // rf6 (값 4)
-        instr.alu.add.waddr = 2;
-        instr.alu.add.magic_write = false;
-        instr.alu.mul.op = V3D_QPU_M_NOP;
-        emit_qpu_instr(devinfo, &instr);
-    }
-
     // TMUWT - 모든 TMU 쓰기 완료 대기
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
@@ -467,34 +352,43 @@ void disassemble_qpu_program(const struct v3d_device_info* devinfo)
 void print_program_explanation(void)
 {
     printf("=== 프로그램 동작 설명 ===\n");
-    printf("이 QPU 프로그램은 벡터 덧셈을 수행합니다:\n\n");
+    printf("이 QPU 프로그램은 16-way SIMD 벡터 덧셈을 수행합니다:\n\n");
 
-    printf("1. Uniform에서 3개의 주소를 로드 (rf0, rf1, rf2):\n");
-    printf("   - rf0 = input_a 주소\n");
-    printf("   - rf1 = input_b 주소\n");
-    printf("   - rf2 = output 주소\n\n");
+    printf("1. Uniform에서 3개의 주소를 로드:\n");
+    printf("   - rf0 = input_a 베이스 주소\n");
+    printf("   - rf1 = input_b 베이스 주소\n");
+    printf("   - rf2 = output 베이스 주소\n\n");
 
-    printf("2. 16번 반복 (각 요소에 대해):\n");
-    printf("   a) TMU 읽기 요청:\n");
-    printf("      - tmua = rf0 → input_a[i] 읽기 시작\n");
-    printf("      - tmua = rf1 → input_b[i] 읽기 시작\n");
-    printf("   b) TMU 결과 대기:\n");
-    printf("      - ldtmu rf3 ← input_a[i]\n");
-    printf("      - ldtmu rf4 ← input_b[i]\n");
-    printf("   c) 덧셈 수행:\n");
-    printf("      - rf5 = rf3 + rf4\n");
-    printf("   d) TMU 쓰기:\n");
-    printf("      - tmud = rf5 (데이터)\n");
-    printf("      - tmua = rf2 (주소) → output[i] 쓰기\n");
-    printf("   e) 주소 증가:\n");
-    printf("      - rf0 += 4, rf1 += 4, rf2 += 4\n\n");
+    printf("2. 각 쓰레드의 오프셋 계산 (16개 쓰레드 병렬 실행):\n");
+    printf("   - rf7 = EIDX (thread ID: 0~15)\n");
+    printf("   - rf8 = rf7 * 2\n");
+    printf("   - rf9 = rf8 * 2 = thread_id * 4 (바이트 오프셋)\n\n");
 
-    printf("3. 완료:\n");
+    printf("3. 각 쓰레드의 메모리 주소 계산:\n");
+    printf("   - rf3 = rf0 + rf9 → input_a[thread_id] 주소\n");
+    printf("   - rf4 = rf1 + rf9 → input_b[thread_id] 주소\n");
+    printf("   - rf5 = rf2 + rf9 → output[thread_id] 주소\n\n");
+
+    printf("4. 각 쓰레드가 자신의 요소 처리:\n");
+    printf("   a) TMU 읽기:\n");
+    printf("      - tmua = rf3 → input_a[thread_id] 읽기\n");
+    printf("      - tmua = rf4 → input_b[thread_id] 읽기\n");
+    printf("   b) 데이터 로드 및 덧셈:\n");
+    printf("      - ldtmu rf10 ← input_a[thread_id]\n");
+    printf("      - ldtmu rf11 ← input_b[thread_id]\n");
+    printf("      - rf12 = rf10 + rf11\n");
+    printf("   c) TMU 쓰기:\n");
+    printf("      - tmud = rf12\n");
+    printf("      - tmua = rf5 → output[thread_id] 쓰기\n\n");
+
+    printf("5. 완료:\n");
     printf("   - tmuwt: 모든 TMU 쓰기 완료 대기\n");
     printf("   - thrsw: 스레드 종료\n\n");
 
-    printf("핵심: TMUD와 TMUA를 **별도 명령어**로 분리해야 합니다!\n");
-    printf("      동시에 쓰면 GPU가 주소 0을 접근하는 버그 발생\n\n");
+    printf("핵심 개념:\n");
+    printf("  • V3D는 16-way SIMD: 16개 쓰레드가 병렬로 같은 명령어 실행\n");
+    printf("  • EIDX로 각 쓰레드의 ID를 얻어 서로 다른 데이터 처리\n");
+    printf("  • TMUD와 TMUA는 반드시 별도 명령어로 분리!\n\n");
 }
 
 /*
