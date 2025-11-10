@@ -91,7 +91,7 @@ add_library(medusa SHARED
 
 # Set include directories
 target_include_directories(medusa
-    PRIVATE
+    PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/loader

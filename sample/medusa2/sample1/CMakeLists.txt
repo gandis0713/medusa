@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 project(
     medusa_sample
     VERSION 0.1
-    DESCRIPTION "medusa sample"
+    DESCRIPTION "medusa2 sample1"
     LANGUAGES CXX
 )
 
@@ -19,20 +19,20 @@ find_package(spdlog CONFIG REQUIRED)
 file(GLOB_RECURSE srcs "*.cpp" "*.hpp" "*.h")
 
 # Create executable
-add_executable(medusa_sample
+add_executable(medusa2_sample1
     ${srcs}
 )
 
 # Link Vulkan loader and spdlog (for logging)
 # NOTE: Do NOT link medusa::medusa (ICD) - it will be loaded by Vulkan loader at runtime
-target_link_libraries(medusa_sample
+target_link_libraries(medusa2_sample1
     PRIVATE
     Vulkan::Vulkan
     spdlog::spdlog
 )
 
 # Set compile options
-target_compile_options(medusa_sample
+target_compile_options(medusa2_sample1
     PRIVATE
     -Wall
     -Werror
