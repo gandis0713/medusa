@@ -6,9 +6,8 @@ project(v3d_sample1
     LANGUAGES C
 )
 
-# 1. qpu_minimal - 최소한의 QPU 프로그램
 add_executable(v3d_sample1
-    qpu_minimal.c
+    qpu_simple_add.c
 )
 
 target_link_libraries(v3d_sample1 PRIVATE 
