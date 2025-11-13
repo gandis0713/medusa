@@ -17,6 +17,8 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
 #include <unistd.h>
 #include <xf86drm.h>
 
@@ -29,8 +31,67 @@
 
 #define VECTOR_SIZE 16
 
+int render_fd;
+int primary_fd;
+
+/*
+ * debugfs에서 V3D ident 정보 읽기
+ * 커널의 v3d_v3d_debugfs_ident 함수가 출력한 정보를 읽습니다.
+ */
+static void read_v3d_debugfs_ident(void)
+{
+    FILE* fp = NULL;
+    char line[256];
+    char debugfs_path[512];
+    int card_num;
+
+    printf("=== V3D debugfs ident 정보 ===\n");
+
+    /* DRM 디바이스 번호 찾기 (renderD128 = card0, renderD129 = card1, ...) */
+    if (render_fd >= 0)
+    {
+        struct stat st;
+        if (fstat(render_fd, &st) == 0)
+        {
+            /* minor number에서 card 번호 계산: renderD128 = minor 128 = card 0 */
+            card_num = minor(st.st_rdev) - 128;
+        }
+        else
+        {
+            card_num = 0;
+        }
+    }
+    else
+    {
+        card_num = 0;
+    }
+
+    /* debugfs 경로: /sys/kernel/debug/dri/N/v3d_ident */
+    snprintf(debugfs_path, sizeof(debugfs_path),
+             "/sys/kernel/debug/dri/%d/v3d_ident", card_num);
+
+    fp = fopen(debugfs_path, "r");
+    if (!fp)
+    {
+        /* 권한 문제일 수 있으므로 sudo 힌트 제공 */
+        printf("debugfs를 열 수 없습니다: %s\n", strerror(errno));
+        printf("힌트: sudo를 사용하거나 debugfs 권한을 확인하세요.\n");
+        printf("      sudo cat %s\n\n", debugfs_path);
+        return;
+    }
+
+    /* 파일 내용 출력 */
+    while (fgets(line, sizeof(line), fp))
+    {
+        printf("%s", line);
+    }
+    printf("\n");
+
+    fclose(fp);
+}
+
 /* QPU 프로그램을 저장할 버퍼 */
-static uint64_t qpu_code[256];  // 16번 반복 * 9명령어 + 여유분
+static uint64_t qpu_code[256]; // 16번 반복 * 9명령어 + 여유분
 static int qpu_code_size = 0;
 
 /* QPU 명령어를 버퍼에 추가하는 헬퍼 함수 */
@@ -82,12 +143,10 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
      * [0] = input_a 주소
      * [1] = input_b 주소
      * [2] = output 주소
-     * [3] = 4 (주소 증가량, sizeof(uint32_t))
-     * [4] = 추가 슬롯 (prefetch용)
      */
 
     /*
-     * 명령어 0-3: uniform에서 주소 3개 + 상수 4 로드
+     * 명령어 0-2: uniform에서 주소 3개 로드
      */
     // rf0 = input_a 주소 (uniform[0])
     memset(&instr, 0, sizeof(instr));
@@ -119,16 +178,6 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     instr.alu.mul.op = V3D_QPU_M_NOP;
     emit_qpu_instr(devinfo, &instr);
 
-    // rf6 = 4 (uniform[3] - 사용하지 않지만 uniform 순서 유지)
-    memset(&instr, 0, sizeof(instr));
-    instr.type = V3D_QPU_INSTR_TYPE_ALU;
-    instr.sig.ldunifrf = true;
-    instr.sig_addr = 6;
-    instr.sig_magic = false;
-    instr.alu.add.op = V3D_QPU_A_NOP;
-    instr.alu.mul.op = V3D_QPU_M_NOP;
-    emit_qpu_instr(devinfo, &instr);
-
     /*
      * 16개의 쓰레드가 병렬로 각각 하나의 요소를 처리
      * Thread 0: output[0] = input_a[0] + input_b[0]
@@ -140,7 +189,7 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     // rf7 = EIDX (thread ID: 0~15)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
-    instr.alu.add.op = V3D_QPU_A_EIDX;  // Element Index (thread ID)
+    instr.alu.add.op = V3D_QPU_A_EIDX; // Element Index (thread ID)
     instr.alu.add.waddr = 7;
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
@@ -150,8 +199,8 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_ADD;
-    instr.alu.add.a.raddr = 7;  // rf7
-    instr.alu.add.b.raddr = 7;  // rf7
+    instr.alu.add.a.raddr = 7; // rf7
+    instr.alu.add.b.raddr = 7; // rf7
     instr.alu.add.waddr = 8;
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
@@ -161,8 +210,8 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_ADD;
-    instr.alu.add.a.raddr = 8;  // rf8
-    instr.alu.add.b.raddr = 8;  // rf8
+    instr.alu.add.a.raddr = 8; // rf8
+    instr.alu.add.b.raddr = 8; // rf8
     instr.alu.add.waddr = 9;
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
@@ -172,8 +221,8 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_ADD;
-    instr.alu.add.a.raddr = 0;  // rf0 (input_a base)
-    instr.alu.add.b.raddr = 9;  // rf9 (offset)
+    instr.alu.add.a.raddr = 0; // rf0 (input_a base)
+    instr.alu.add.b.raddr = 9; // rf9 (offset)
     instr.alu.add.waddr = 3;
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
@@ -183,8 +232,8 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_ADD;
-    instr.alu.add.a.raddr = 1;  // rf1 (input_b base)
-    instr.alu.add.b.raddr = 9;  // rf9 (offset)
+    instr.alu.add.a.raddr = 1; // rf1 (input_b base)
+    instr.alu.add.b.raddr = 9; // rf9 (offset)
     instr.alu.add.waddr = 4;
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
@@ -194,8 +243,8 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_ADD;
-    instr.alu.add.a.raddr = 2;  // rf2 (output base)
-    instr.alu.add.b.raddr = 9;  // rf9 (offset)
+    instr.alu.add.a.raddr = 2; // rf2 (output base)
+    instr.alu.add.b.raddr = 9; // rf9 (offset)
     instr.alu.add.waddr = 5;
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
@@ -205,7 +254,7 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_MOV;
-    instr.alu.add.a.raddr = 3;  // rf3 (input_a[thread_id] 주소)
+    instr.alu.add.a.raddr = 3; // rf3 (input_a[thread_id] 주소)
     instr.alu.add.waddr = V3D_QPU_WADDR_TMUA;
     instr.alu.add.magic_write = true;
     instr.alu.mul.op = V3D_QPU_M_NOP;
@@ -215,7 +264,7 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_MOV;
-    instr.alu.add.a.raddr = 4;  // rf4 (input_b[thread_id] 주소)
+    instr.alu.add.a.raddr = 4; // rf4 (input_b[thread_id] 주소)
     instr.alu.add.waddr = V3D_QPU_WADDR_TMUA;
     instr.alu.add.magic_write = true;
     instr.alu.mul.op = V3D_QPU_M_NOP;
@@ -252,9 +301,9 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_ADD;
-    instr.alu.add.a.raddr = 10;  // rf10
-    instr.alu.add.b.raddr = 11;  // rf11
-    instr.alu.add.waddr = 12;    // rf12
+    instr.alu.add.a.raddr = 10; // rf10
+    instr.alu.add.b.raddr = 11; // rf11
+    instr.alu.add.waddr = 12;   // rf12
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
     emit_qpu_instr(devinfo, &instr);
@@ -263,7 +312,7 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_MOV;
-    instr.alu.add.a.raddr = 12;  // rf12 (덧셈 결과)
+    instr.alu.add.a.raddr = 12; // rf12 (덧셈 결과)
     instr.alu.add.waddr = V3D_QPU_WADDR_TMUD;
     instr.alu.add.magic_write = true;
     instr.alu.mul.op = V3D_QPU_M_NOP;
@@ -273,7 +322,7 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_MOV;
-    instr.alu.add.a.raddr = 5;  // rf5 (output[thread_id] 주소)
+    instr.alu.add.a.raddr = 5; // rf5 (output[thread_id] 주소)
     instr.alu.add.waddr = V3D_QPU_WADDR_TMUA;
     instr.alu.add.magic_write = true;
     instr.alu.mul.op = V3D_QPU_M_NOP;
@@ -483,7 +532,6 @@ static void destroy_gpu_buffer(struct gpu_buffer* buf)
  */
 int execute_on_gpu(void)
 {
-    int drm_fd;
     struct gpu_buffer* code_bo = NULL;
     struct gpu_buffer* input_a_bo = NULL;
     struct gpu_buffer* input_b_bo = NULL;
@@ -493,11 +541,8 @@ int execute_on_gpu(void)
 
     printf("\n=== 실제 GPU 실행 ===\n");
 
-    /* 1. V3D DRM 디바이스 열기 */
-    drm_fd = open("/dev/dri/renderD128", O_RDWR);
-    if (drm_fd < 0)
+    if (render_fd < 0)
     {
-        fprintf(stderr, "Failed to open /dev/dri/renderD128: %s\n", strerror(errno));
         fprintf(stderr, "Note: V3D DRM 커널 드라이버가 필요합니다.\n");
         return -1;
     }
@@ -508,25 +553,25 @@ int execute_on_gpu(void)
     printf("GPU 메모리 할당 중...\n");
 
     /* QPU 코드 버퍼 (64 bytes aligned) */
-    code_bo = create_gpu_buffer(drm_fd, qpu_code_size * sizeof(uint64_t));
+    code_bo = create_gpu_buffer(render_fd, qpu_code_size * sizeof(uint64_t));
     if (!code_bo)
         goto cleanup;
 
     /* 입력/출력 데이터 버퍼 */
-    input_a_bo = create_gpu_buffer(drm_fd, VECTOR_SIZE * sizeof(uint32_t));
+    input_a_bo = create_gpu_buffer(render_fd, VECTOR_SIZE * sizeof(uint32_t));
     if (!input_a_bo)
         goto cleanup;
 
-    input_b_bo = create_gpu_buffer(drm_fd, VECTOR_SIZE * sizeof(uint32_t));
+    input_b_bo = create_gpu_buffer(render_fd, VECTOR_SIZE * sizeof(uint32_t));
     if (!input_b_bo)
         goto cleanup;
 
-    output_bo = create_gpu_buffer(drm_fd, VECTOR_SIZE * sizeof(uint32_t));
+    output_bo = create_gpu_buffer(render_fd, VECTOR_SIZE * sizeof(uint32_t));
     if (!output_bo)
         goto cleanup;
 
     /* Uniform 버퍼 (3개 주소 - V3D는 32비트 주소 사용) */
-    uniforms_bo = create_gpu_buffer(drm_fd, 3 * sizeof(uint32_t));
+    uniforms_bo = create_gpu_buffer(render_fd, 3 * sizeof(uint32_t));
     if (!uniforms_bo)
         goto cleanup;
 
@@ -559,19 +604,16 @@ int execute_on_gpu(void)
     }
     printf("\n");
 
-    /* Uniform 데이터: [0-2]=주소들, [3]=상수4, [4]=추가 슬롯 */
+    /* Uniform 데이터: [0-2]=주소들 */
     uint32_t* uniforms = (uint32_t*)uniforms_bo->map;
-    uniforms[0] = (uint32_t)input_a_bo->offset;  // input_a 주소
-    uniforms[1] = (uint32_t)input_b_bo->offset;  // input_b 주소
-    uniforms[2] = (uint32_t)output_bo->offset;   // output 주소
-    uniforms[3] = 4;   // 주소 증가량
-    uniforms[4] = 0;   // 추가 슬롯 (하드웨어 prefetch용)
+    uniforms[0] = (uint32_t)input_a_bo->offset; // input_a 주소
+    uniforms[1] = (uint32_t)input_b_bo->offset; // input_b 주소
+    uniforms[2] = (uint32_t)output_bo->offset;  // output 주소
 
     printf("Uniform 설정:\n");
     printf("  input_a: 0x%08x\n", uniforms[0]);
     printf("  input_b: 0x%08x\n", uniforms[1]);
     printf("  output:  0x%08x\n", uniforms[2]);
-    printf("  stride:  %u\n", uniforms[3]);
 
     /* 4. Compute Shader Dispatch 구성 */
     printf("GPU 작업 제출 중...\n");
@@ -606,28 +648,28 @@ int execute_on_gpu(void)
     const uint32_t wg_size = 16;
 
     /* Supergroup 설정 */
-    const uint32_t wgs_per_sg = 1;  // 1 workgroup per supergroup
-    const uint32_t batches_per_sg = (wgs_per_sg * wg_size + 15) / 16;  // = 1
-    const uint32_t num_batches = batches_per_sg * num_wgs;  // = 1
-    const uint32_t max_sg_id = (num_wgs + wgs_per_sg - 1) / wgs_per_sg - 1;  // = 0
+    const uint32_t wgs_per_sg = 1;                                          // 1 workgroup per supergroup
+    const uint32_t batches_per_sg = (wgs_per_sg * wg_size + 15) / 16;       // = 1
+    const uint32_t num_batches = batches_per_sg * num_wgs;                  // = 1
+    const uint32_t max_sg_id = (num_wgs + wgs_per_sg - 1) / wgs_per_sg - 1; // = 0
 
     /* cfg[0-2]: Workgroup count와 offset */
-    submit.cfg[0] = (wg_count_x << 16) | 0;  // WG count X=1, offset X=0
-    submit.cfg[1] = (wg_count_y << 16) | 0;  // WG count Y=1, offset Y=0
-    submit.cfg[2] = (wg_count_z << 16) | 0;  // WG count Z=1, offset Z=0
+    submit.cfg[0] = (wg_count_x << 16) | 0; // WG count X=1, offset X=0
+    submit.cfg[1] = (wg_count_y << 16) | 0; // WG count Y=1, offset Y=0
+    submit.cfg[2] = (wg_count_z << 16) | 0; // WG count Z=1, offset Z=0
 
     /* cfg[3]: Workgroup와 Supergroup 설정 */
-    submit.cfg[3] = (wg_size & 0xff) |                      // WG_SIZE (8 bits)
-                    ((wgs_per_sg & 0xf) << 8) |             // WGS_PER_SG (4 bits)
-                    ((batches_per_sg - 1) << 12) |          // BATCHES_PER_SG_M1 (8 bits)
-                    ((max_sg_id & 0x3f) << 20);             // MAX_SG_ID (6 bits)
+    submit.cfg[3] = (wg_size & 0xff) |             // WG_SIZE (8 bits)
+                    ((wgs_per_sg & 0xf) << 8) |    // WGS_PER_SG (4 bits)
+                    ((batches_per_sg - 1) << 12) | // BATCHES_PER_SG_M1 (8 bits)
+                    ((max_sg_id & 0x3f) << 20);    // MAX_SG_ID (6 bits)
 
     /* cfg[4]: 총 batch 개수 (V3D 7.1.6+에서는 -1 하지 않음) */
     submit.cfg[4] = num_batches;
 
     /* cfg[5]: Shader 주소 + 플래그 */
     submit.cfg[5] = (uint32_t)code_bo->offset;
-    submit.cfg[5] |= (1 << 1);  // V3D_CSD_CFG5_SINGLE_SEG - 단일 세그먼트
+    submit.cfg[5] |= (1 << 1); // V3D_CSD_CFG5_SINGLE_SEG - 단일 세그먼트
     // THREADING 비트는 쓰레드가 4개일 때만 설정 (우리는 1개 사용)
 
     /* cfg[6]: Uniform 주소 */
@@ -651,7 +693,7 @@ int execute_on_gpu(void)
     submit.perfmon_id = 0;
 
     /* 5. GPU에 작업 제출 */
-    if (ioctl(drm_fd, DRM_IOCTL_V3D_SUBMIT_CSD, &submit) < 0)
+    if (ioctl(render_fd, DRM_IOCTL_V3D_SUBMIT_CSD, &submit) < 0)
     {
         fprintf(stderr, "Failed to submit CSD: %s\n", strerror(errno));
         goto cleanup;
@@ -667,7 +709,7 @@ int execute_on_gpu(void)
         .timeout_ns = 1000000000, // 1초 타임아웃
     };
 
-    if (ioctl(drm_fd, DRM_IOCTL_V3D_WAIT_BO, &wait) < 0)
+    if (ioctl(render_fd, DRM_IOCTL_V3D_WAIT_BO, &wait) < 0)
     {
         fprintf(stderr, "Failed to wait for BO: %s\n", strerror(errno));
         goto cleanup;
@@ -713,9 +755,6 @@ cleanup:
     destroy_gpu_buffer(input_b_bo);
     destroy_gpu_buffer(output_bo);
     destroy_gpu_buffer(uniforms_bo);
-
-    if (drm_fd >= 0)
-        close(drm_fd);
 
     return ret;
 }
@@ -768,13 +807,30 @@ void simulate_execution(void)
 int main(int argc, char* argv[])
 {
     /* V3D 7.1 디바이스 정보 설정 (Raspberry Pi 5) */
-    struct v3d_device_info devinfo = {
-        .ver = 71, /* V3D 7.1 */
-    };
+    struct v3d_device_info devinfo;
+    memset(&devinfo, 0, sizeof(devinfo));
 
     printf("========================================\n");
     printf("   QPU 벡터 덧셈 예제 (V3D 7.1)\n");
     printf("========================================\n\n");
+
+    /* GPU 디바이스 열어서 실제 QPU 개수 확인 시도 */
+    render_fd = open("/dev/dri/renderD128", O_RDWR);
+    if (render_fd < 0)
+    {
+        printf("V3D DRM 디바이스 열기 실패: %s\n", strerror(errno));
+        return 1;
+    }
+
+    if (!v3d_get_device_info(render_fd, &devinfo, (v3d_ioctl_fun)ioctl))
+    {
+        printf("V3D 디바이스 정보 가져오기 실패\n");
+        close(render_fd);
+        return 1;
+    }
+
+    /* debugfs에서 상세 정보 읽기 */
+    read_v3d_debugfs_ident();
 
     /* QPU 프로그램 생성 */
     generate_qpu_vector_add(&devinfo);
@@ -806,6 +862,37 @@ int main(int argc, char* argv[])
             printf("Raspberry Pi 5에서 실행하거나 --no-gpu 옵션을 사용하세요.\n");
         }
     }
+
+    /* IDENT1 레지스터 다시 읽어서 상세 정보 출력 */
+    struct drm_v3d_get_param ident1_req = {
+        .param = DRM_V3D_PARAM_V3D_CORE0_IDENT1,
+    };
+    uint32_t ident1_value = 0;
+    if (ioctl(render_fd, DRM_IOCTL_V3D_GET_PARAM, &ident1_req) == 0)
+    {
+        ident1_value = ident1_req.value;
+    }
+
+    int nslc = (ident1_value >> 4) & 0xf;
+    int qups = (ident1_value >> 8) & 0xf;
+    int ntmu = (ident1_value >> 12) & 0xf;
+    int vpm_size_kb = ((ident1_value >> 28) & 0xf);
+    // devinfo.vpm_size = vpm_size_kb * 1024;
+
+    printf("=== 실제 GPU 하드웨어 정보 ===\n");
+    printf("V3D 버전: %d.%d\n", devinfo.ver / 10, devinfo.ver % 10);
+    printf("QPU 개수: %d\n", devinfo.qpu_count);
+    printf("Slice 갯수: %d\n", devinfo.slice_count);
+    printf("TMU 개수: %d\n", devinfo.tmu_count);
+    printf("Semaphore 갯수: %d\n", devinfo.sem_count);
+    printf("VPM 크기: %d bytes\n", devinfo.vpm_size);
+    printf("최대 동시 쓰레드: %d (QPU × 16)\n", devinfo.qpu_count * 16);
+    printf("Accumulator 레지스터: %s\n",
+           devinfo.has_accumulators ? "있음 (V3D 4.x)" : "없음 (V3D 7.x)");
+    printf("\n");
+
+    if (render_fd >= 0)
+        close(render_fd);
 
     printf("\n========================================\n");
     printf("프로그램 종료\n");

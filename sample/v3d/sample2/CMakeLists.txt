@@ -6,9 +6,12 @@ project(v3d_sample2
     LANGUAGES C
 )
 
+file(GLOB SRC_FILES
+    "*.c"
+)
+
 add_executable(v3d_sample2
-    qpu_simple_add.c
-    # test_immediate.c
+    ${SRC_FILES}
 )
 
 target_link_libraries(v3d_sample2 PRIVATE 
