@@ -69,10 +69,10 @@ bool v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun 
 
     devinfo->vpm_size = (ident1.value >> 28 & 0xf) * 8192;
 
-    int nslc = (ident1.value >> 4) & 0xf;
-    int qups = (ident1.value >> 8) & 0xf;
-    int tmus = (ident1.value >> 12) & 0xf;
-    int sems = (ident1.value >> 16) & 0xf;
+    int nslc = (ident1.value >> 4) & 0xf;   // bits 4-7: slice count
+    int qups = (ident1.value >> 8) & 0xf;   // bits 8-11: QPUs per slice
+    int tmus = (ident1.value >> 12) & 0xf;  // bits 12-15: TMUs per slice
+    int sems = (ident1.value >> 16) & 0xff; // bits 16-23: semaphore count
     devinfo->slice_count = nslc;
     devinfo->qpu_count = nslc * qups;
     devinfo->tmu_count = nslc * tmus;
