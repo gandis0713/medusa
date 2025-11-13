@@ -71,7 +71,12 @@ bool v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun 
 
     int nslc = (ident1.value >> 4) & 0xf;
     int qups = (ident1.value >> 8) & 0xf;
+    int tmus = (ident1.value >> 12) & 0xf;
+    int sems = (ident1.value >> 16) & 0xf;
+    devinfo->slice_count = nslc;
     devinfo->qpu_count = nslc * qups;
+    devinfo->tmu_count = nslc * tmus;
+    devinfo->sem_count = sems;
 
     devinfo->has_accumulators = devinfo->ver < 71;
 

@@ -74,6 +74,15 @@ extern "C"
 
         /** Minimum size for a buffer storing the Control List Executor (CLE) */
         uint32_t cle_buffer_min_size;
+
+        /** Number of TMUs */
+        int tmu_count; // by gandis
+
+        /** Number of semaphores */
+        int sem_count; // by gandis
+
+        /** Number of Slices */
+        int slice_count; // by gandis
     };
 
 /* TFU has a 64-bytes readhead. To avoid the unit reading unmaped memory
