@@ -14,36 +14,46 @@
 
 ### V3D 7.1 GPU 개요
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Raspberry Pi 5 SoC                        │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              V3D 7.1.6 GPU                           │    │
-│  │  ┌──────────────────────────────────────────────┐   │    │
-│  │  │            QPU (Quad Processing Unit)        │   │    │
-│  │  │                                              │   │    │
+┌────────────────────────────────────────────────────────────┐
+│                    Raspberry Pi 5 SoC                      │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │              V3D 7.1.6 GPU                         │    │
+│  │  ┌─────────────────────────────────────────────┐   │    │
+│  │  │            QPU (Quad Processing Unit)       │   │    │
+│  │  │                                             │   │    │
 │  │  │   ┌────────────────────────────────────┐    │   │    │
 │  │  │   │  16-way SIMD Execution Engine      │    │   │    │
 │  │  │   │  (16 threads execute in parallel)  │    │   │    │
 │  │  │   └────────────────────────────────────┘    │   │    │
-│  │  │                                              │   │    │
-│  │  │   ┌─────────────┐    ┌──────────────┐      │   │    │
-│  │  │   │   ALU Unit  │    │   MUL Unit   │      │   │    │
-│  │  │   │  (ADD/SUB)  │    │   (FMUL)     │      │   │    │
-│  │  │   └─────────────┘    └──────────────┘      │   │    │
-│  │  │                                              │   │    │
-│  │  │   ┌─────────────────────────────────────┐  │   │    │
-│  │  │   │  Register File (rf0 ~ rf63)         │  │   │    │
-│  │  │   │  Each register: 16 x 32-bit vector  │  │   │    │
-│  │  │   └─────────────────────────────────────┘  │   │    │
-│  │  │                                              │   │    │
-│  │  │   ┌─────────────────────────────────────┐  │   │    │
-│  │  │   │  TMU (Texture Memory Unit)          │  │   │    │
-│  │  │   │  - Memory read/write interface      │  │   │    │
-│  │  │   │  - Cache management                 │  │   │    │
-│  │  │   └─────────────────────────────────────┘  │   │    │
-│  │  └──────────────────────────────────────────────┘   │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
+│  │  │                                             │   │    │
+│  │  │   ┌─────────────┐    ┌──────────────┐       │   │    │
+│  │  │   │   ALU Unit  │    │   MUL Unit   │       │   │    │
+│  │  │   │  (ADD/SUB)  │    │   (FMUL)     │       │   │    │
+│  │  │   └─────────────┘    └──────────────┘       │   │    │
+│  │  │                                             │   │    │
+│  │  │   ┌─────────────────────────────────────┐   │   │    │
+│  │  │   │  Register File (rf0 ~ rf63)         │   │   │    │
+│  │  │   │  Each register: 16 x 32-bit vector  │   │   │    │
+│  │  │   └─────────────────────────────────────┘   │   │    │
+│  │  │                                             │   │    │
+│  │  │   ┌─────────────────────────────────────┐   │   │    │
+│  │  │   │  TMU Interface Registers            │   │   │    │
+│  │  │   │  - TMUA, TMUD, TMUWT                │   │   │    │
+│  │  │   │  - 4 QPUs share 1 TMU (per Slice)   │   │   │    │
+│  │  │   └─────────────────────────────────────┘   │   │    │
+│  │  └─────────────────────────────────────────────┘   │    │
+│  │                                                    │    │
+│  │  ┌─────────────────────────────────────────────┐   │    │
+│  │  │  TMU (Texture Memory Unit) - Shared         │   │    │
+│  │  │  - Memory read/write pipeline               │   │    │
+│  │  │  - Cache management (L1, L2)                │   │    │
+│  │  │  - Serves 4 QPUs per Slice                  │   │    │
+│  │  └─────────────────────────────────────────────┘   │    │
+│  │                                                    │    │
+│  │  Raspberry Pi 5: 12 QPUs, 3 Slices, 3 TMUs         │    │
+│  │  (4 QPUs share 1 TMU per Slice)                    │    │
+│  └────────────────────────────────────────────────────┘    │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ### QPU 핵심 특징
@@ -67,59 +77,57 @@
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│                      System Memory (DRAM)                   │
-│                                                              │
+│                      System Memory (DRAM)                  │
+│                                                            │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │              GPU Virtual Address Space                │  │
-│  │                                                        │  │
-│  │  ┌─────────────────┐  ┌─────────────────┐           │  │
-│  │  │   input_a BO    │  │   input_b BO    │           │  │
-│  │  │  0x011a9000     │  │  0x011ad000     │           │  │
-│  │  │  [64 bytes]     │  │  [64 bytes]     │           │  │
-│  │  │                 │  │                 │           │  │
-│  │  │  1  2  3  4     │  │  10 20 30 40    │           │  │
-│  │  │  5  6  7  8     │  │  50 60 70 80    │           │  │
-│  │  │  9 10 11 12     │  │  90 100 110 120 │           │  │
-│  │  │ 13 14 15 16     │  │  130 140 150 160│           │  │
-│  │  └─────────────────┘  └─────────────────┘           │  │
-│  │                                                        │  │
-│  │  ┌─────────────────┐  ┌─────────────────┐           │  │
-│  │  │   output BO     │  │  QPU code BO    │           │  │
-│  │  │  0x011b1000     │  │  0x011f9000     │           │  │
-│  │  │  [64 bytes]     │  │  [192 bytes]    │           │  │
-│  │  │                 │  │  (24 instrs)    │           │  │
-│  │  │ 11 22 33 44     │  │                 │           │  │
-│  │  │ 55 66 77 88     │  │  0x39800000...  │           │  │
-│  │  │ 99 110 121 132  │  │  0x39804000...  │           │  │
-│  │  │143 154 165 176  │  │  ...            │           │  │
-│  │  └─────────────────┘  └─────────────────┘           │  │
-│  │                                                        │  │
-│  │  ┌─────────────────┐                                  │  │
-│  │  │  Uniforms BO    │                                  │  │
-│  │  │  0x01c19000     │                                  │  │
-│  │  │  [20 bytes]     │                                  │  │
-│  │  │                 │                                  │  │
+│  │              GPU Virtual Address Space               │  │
+│  │                                                      │  │
+│  │  ┌─────────────────┐  ┌─────────────────┐            │  │
+│  │  │   input_a BO    │  │   input_b BO    │            │  │
+│  │  │  0x011a9000     │  │  0x011ad000     │            │  │
+│  │  │  [64 bytes]     │  │  [64 bytes]     │            │  │
+│  │  │                 │  │                 │            │  │
+│  │  │  1  2  3  4     │  │  10 20 30 40    │            │  │
+│  │  │  5  6  7  8     │  │  50 60 70 80    │            │  │
+│  │  │  9 10 11 12     │  │  90 100 110 120 │            │  │
+│  │  │ 13 14 15 16     │  │  130 140 150 160│            │  │
+│  │  └─────────────────┘  └─────────────────┘            │  │
+│  │                                                      │  │
+│  │  ┌─────────────────┐  ┌─────────────────┐            │  │
+│  │  │   output BO     │  │  QPU code BO    │            │  │
+│  │  │  0x011b1000     │  │  0x011f9000     │            │  │
+│  │  │  [64 bytes]     │  │  [192 bytes]    │            │  │
+│  │  │                 │  │  (24 instrs)    │            │  │
+│  │  │ 11 22 33 44     │  │                 │            │  │
+│  │  │ 55 66 77 88     │  │  0x39800000...  │            │  │
+│  │  │ 99 110 121 132  │  │  0x39804000...  │            │  │
+│  │  │143 154 165 176  │  │  ...            │            │  │
+│  │  └─────────────────┘  └─────────────────┘            │  │
+│  │                                                      │  │
+│  │  ┌─────────────────┐                                 │  │
+│  │  │  Uniforms BO    │                                 │  │
+│  │  │  0x01c19000     │                                 │  │
+│  │  │  [12 bytes]     │                                 │  │
+│  │  │                 │                                 │  │
 │  │  │ [0]: 0x011a9000 │ ← input_a base                  │  │
 │  │  │ [1]: 0x011ad000 │ ← input_b base                  │  │
 │  │  │ [2]: 0x011b1000 │ ← output base                   │  │
-│  │  │ [3]: 4          │ ← stride (unused)               │  │
-│  │  │ [4]: 0          │ ← prefetch slot                 │  │
-│  │  └─────────────────┘                                  │  │
+│  │  └─────────────────┘                                 │  │
 │  └──────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────┘
               ▲                           │
               │                           │ TMU access
               │ DRM ioctl                 ▼
 ┌─────────────┴─────────────────────────────────────────────┐
-│                     Linux Kernel                           │
+│                     Linux Kernel                          │
 │  ┌──────────────────────────────────────────────────────┐ │
-│  │             V3D DRM Driver                            │ │
+│  │             V3D DRM Driver                           │ │
 │  │  - Buffer Object (BO) management                     │ │
 │  │  - GPU memory allocation (DRM_IOCTL_V3D_CREATE_BO)   │ │
 │  │  - Memory mapping (DRM_IOCTL_V3D_MMAP_BO)            │ │
 │  │  - Command submission (DRM_IOCTL_V3D_SUBMIT_CSD)     │ │
 │  └──────────────────────────────────────────────────────┘ │
-└────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────┘
 ```
 
 ### Buffer Object (BO) 관리
@@ -134,7 +142,7 @@
 
 ## 명령어 실행 흐름
 
-### 프로그램 구조 (24개 명령어)
+### 프로그램 구조 (21개 명령어)
 
 ```
 명령어 번호   │  어셈블리                          │  설명
@@ -142,27 +150,24 @@
 0            │  ldunifrf.rf0                      │  uniform[0] → rf0 (input_a base)
 1            │  ldunifrf.rf1                      │  uniform[1] → rf1 (input_b base)
 2            │  ldunifrf.rf2                      │  uniform[2] → rf2 (output base)
-3            │  ldunifrf.rf6                      │  uniform[3] → rf6 (stride, unused)
-4            │  eidx rf7                          │  EIDX → rf7 (thread ID: 0~15)
-5            │  add rf8, rf7, rf7                 │  rf7 * 2 → rf8
-6            │  add rf9, rf8, rf8                 │  rf8 * 2 → rf9 (thread_id * 4)
-7            │  add rf3, rf0, rf9                 │  input_a base + offset → rf3
-8            │  add rf4, rf1, rf9                 │  input_b base + offset → rf4
-9            │  add rf5, rf2, rf9                 │  output base + offset → rf5
-10           │  mov tmua, rf3                     │  TMU read request: input_a[tid]
-11           │  mov tmua, rf4                     │  TMU read request: input_b[tid]
-12           │  nop                               │  TMU latency
-13           │  ldtmu.rf10                        │  TMU response → rf10 (input_a[tid])
-14           │  ldtmu.rf11                        │  TMU response → rf11 (input_b[tid])
-15           │  add rf12, rf10, rf11              │  rf10 + rf11 → rf12
-16           │  mov tmud, rf12                    │  Prepare write data
-17           │  mov tmua, rf5                     │  TMU write: output[tid] = rf12
-18           │  tmuwt rf0                         │  Wait for TMU writes to complete
-19           │  nop                               │  Post-tmuwt delay
-20           │  nop                               │  Post-tmuwt delay
-21           │  thrsw                             │  Thread switch (prepare to exit)
-22           │  nop                               │  Thrsw delay slot
-23           │  nop                               │  Thrsw delay slot
+3            │  eidx rf7                          │  EIDX → rf7 (thread ID: 0~15)
+4            │  add rf8, rf7, rf7                 │  rf7 * 2 → rf8
+5            │  add rf9, rf8, rf8                 │  rf8 * 2 → rf9 (thread_id * 4)
+6            │  add rf3, rf0, rf9                 │  input_a base + offset → rf3
+7            │  add rf4, rf1, rf9                 │  input_b base + offset → rf4
+8            │  add rf5, rf2, rf9                 │  output base + offset → rf5
+9            │  mov tmua, rf3                     │  TMU read request: input_a[tid]
+10           │  mov tmua, rf4                     │  TMU read request: input_b[tid]
+11           │  nop                               │  TMU latency
+12           │  ldtmu.rf10                        │  TMU response → rf10 (input_a[tid])
+13           │  ldtmu.rf11                        │  TMU response → rf11 (input_b[tid])
+14           │  add rf12, rf10, rf11              │  rf10 + rf11 → rf12
+15           │  mov tmud, rf12                    │  Prepare write data
+16           │  mov tmua, rf5                     │  TMU write: output[tid] = rf12
+17           │  tmuwt rf0                         │  Wait for TMU writes to complete
+18           │  nop                               │  Post-tmuwt delay
+19           │  thrsw                             │  Thread switch (prepare to exit)
+20           │  nop                               │  Thrsw delay slot
 ```
 
 ### 실제 16진수 명령어
@@ -171,27 +176,24 @@
  0: 0x39800000bb03f000   ldunifrf.rf0
  1: 0x39804000bb03f000   ldunifrf.rf1
  2: 0x39808000bb03f000   ldunifrf.rf2
- 3: 0x39818000bb03f000   ldunifrf.rf6
- 4: 0x38000007bb03f002   eidx rf7
- 5: 0x380000083803f1c7   add rf8, rf7, rf7
- 6: 0x380000093803f208   add rf9, rf8, rf8
- 7: 0x380000033803f009   add rf3, rf0, rf9
- 8: 0x380000043803f049   add rf4, rf1, rf9
- 9: 0x380000053803f089   add rf5, rf2, rf9
-10: 0x3800100cf903f0c3   mov tmua, rf3
-11: 0x3800100cf903f103   mov tmua, rf4
-12: 0x38000000bb03f000   nop
-13: 0x38828000bb03f000   ldtmu.rf10
-14: 0x3882c000bb03f000   ldtmu.rf11
-15: 0x3800000c3803f28b   add rf12, rf10, rf11
-16: 0x3800100bf903f303   mov tmud, rf12
-17: 0x3800100cf903f143   mov tmua, rf5
-18: 0x38000000bb03f00f   tmuwt rf0
-19: 0x38000000bb03f000   nop
+ 3: 0x38000007bb03f002   eidx rf7
+ 4: 0x380000083803f1c7   add rf8, rf7, rf7
+ 5: 0x380000093803f208   add rf9, rf8, rf8
+ 6: 0x380000033803f009   add rf3, rf0, rf9
+ 7: 0x380000043803f049   add rf4, rf1, rf9
+ 8: 0x380000053803f089   add rf5, rf2, rf9
+ 9: 0x3800100cf903f0c3   mov tmua, rf3
+10: 0x3800100cf903f103   mov tmua, rf4
+11: 0x38000000bb03f000   nop
+12: 0x38828000bb03f000   ldtmu.rf10
+13: 0x3882c000bb03f000   ldtmu.rf11
+14: 0x3800000c3803f28b   add rf12, rf10, rf11
+15: 0x3800100bf903f303   mov tmud, rf12
+16: 0x3800100cf903f143   mov tmua, rf5
+17: 0x38000000bb03f00f   tmuwt rf0
+18: 0x38000000bb03f000   nop
+19: 0x38200000bb03f000   thrsw
 20: 0x38000000bb03f000   nop
-21: 0x38200000bb03f000   thrsw
-22: 0x38000000bb03f000   nop
-23: 0x38000000bb03f000   nop
 ```
 
 ---
@@ -201,7 +203,7 @@
 ### EIDX (Element Index) 동작
 
 ```
-명령어 4: eidx rf7
+명령어 3: eidx rf7
 ─────────────────────────────────────────────────────
 
 실행 전: rf7 = [undefined × 16]
@@ -218,11 +220,11 @@
 각 쓰레드는 자신의 고유한 ID를 얻습니다.
 ```
 
-### 오프셋 계산 (명령어 5-6)
+### 오프셋 계산 (명령어 4-5)
 
 ```
-명령어 5: add rf8, rf7, rf7    (rf7 * 2)
-명령어 6: add rf9, rf8, rf8    (rf8 * 2 = rf7 * 4)
+명령어 4: add rf8, rf7, rf7    (rf7 * 2)
+명령어 5: add rf9, rf8, rf8    (rf8 * 2 = rf7 * 4)
 ────────────────────────────────────────────────────────
 
 Thread ID (rf7):  [0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15]
@@ -238,7 +240,7 @@ rf7 * 4 (rf9):    [0,  4,  8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60
                    └───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴──→ 바이트 오프셋
 ```
 
-### 주소 계산 (명령어 7-9)
+### 주소 계산 (명령어 6-8)
 
 ```
 Uniform에서 로드한 베이스 주소:
@@ -246,7 +248,7 @@ Uniform에서 로드한 베이스 주소:
   rf1 = 0x011ad000  (input_b base)
   rf2 = 0x011b1000  (output base)
 
-명령어 7: add rf3, rf0, rf9
+명령어 6: add rf3, rf0, rf9
 ──────────────────────────────────────────────────────────────────────
 Thread  │ rf0          │ rf9    │ rf3 (input_a[tid] addr)  │ Value
 ────────┼──────────────┼────────┼──────────────────────────┼──────
@@ -257,7 +259,7 @@ Thread  │ rf0          │ rf9    │ rf3 (input_a[tid] addr)  │ Value
    ...  │ ...          │  ...   │ ...                      │ ...
   15    │ 0x011a9000   │   60   │ 0x011a903c               │ 16
 
-명령어 8: add rf4, rf1, rf9
+명령어 7: add rf4, rf1, rf9
 ──────────────────────────────────────────────────────────────────────
 Thread  │ rf1          │ rf9    │ rf4 (input_b[tid] addr)  │ Value
 ────────┼──────────────┼────────┼──────────────────────────┼──────
@@ -268,7 +270,7 @@ Thread  │ rf1          │ rf9    │ rf4 (input_b[tid] addr)  │ Value
    ...  │ ...          │  ...   │ ...                      │ ...
   15    │ 0x011ad000   │   60   │ 0x011ad03c               │ 160
 
-명령어 9: add rf5, rf2, rf9
+명령어 8: add rf5, rf2, rf9
 ──────────────────────────────────────────────────────────────────────
 Thread  │ rf2          │ rf9    │ rf5 (output[tid] addr)
 ────────┼──────────────┼────────┼──────────────────────────
@@ -283,7 +285,7 @@ Thread  │ rf2          │ rf9    │ rf5 (output[tid] addr)
 ### 병렬 연산 실행
 
 ```
-명령어 15: add rf12, rf10, rf11
+명령어 14: add rf12, rf10, rf11
 ─────────────────────────────────────────────────────────────────
 
 Thread  │  rf10      │  rf11     │  rf12 (result)  │  설명
@@ -395,11 +397,11 @@ GPU Virtual Address Space          Physical Memory          CPU Virtual Address 
 ┌──────────────┬────────────┬──────────┬─────────────────────────────┐
 │ BO Name      │ Size       │ GPU Addr │ Purpose                     │
 ├──────────────┼────────────┼──────────┼─────────────────────────────┤
-│ code_bo      │ 192 bytes  │0x011f9000│ QPU 명령어 (24 × 8 bytes)   │
+│ code_bo      │ 168 bytes  │0x011f9000│ QPU 명령어 (21 × 8 bytes)   │
 │ input_a_bo   │ 64 bytes   │0x011a9000│ 입력 벡터 A (16 × 4 bytes)  │
 │ input_b_bo   │ 64 bytes   │0x011ad000│ 입력 벡터 B (16 × 4 bytes)  │
 │ output_bo    │ 64 bytes   │0x011b1000│ 출력 벡터 (16 × 4 bytes)    │
-│ uniforms_bo  │ 20 bytes   │0x01c19000│ Uniform 데이터 (5 × 4 bytes)│
+│ uniforms_bo  │ 12 bytes   │0x01c19000│ Uniform 데이터 (3 × 4 bytes)│
 └──────────────┴────────────┴──────────┴─────────────────────────────┘
 ```
 
@@ -504,14 +506,14 @@ close(drm_fd);
                       └───────────────┘
 ```
 
-### TMU 읽기 동작 (명령어 10-14)
+### TMU 읽기 동작 (명령어 9-13)
 
 ```
-명령어 10: mov tmua, rf3    (TMU read request for input_a)
-명령어 11: mov tmua, rf4    (TMU read request for input_b)
-명령어 12: nop              (TMU latency - 여러 클럭 필요)
-명령어 13: ldtmu.rf10       (Get first response)
-명령어 14: ldtmu.rf11       (Get second response)
+명령어 9:  mov tmua, rf3    (TMU read request for input_a)
+명령어 10: mov tmua, rf4    (TMU read request for input_b)
+명령어 11: nop              (TMU latency - 여러 클럭 필요)
+명령어 12: ldtmu.rf10       (Get first response)
+명령어 13: ldtmu.rf11       (Get second response)
 ```
 
 **타임라인:**
@@ -552,12 +554,12 @@ Cycle │ Action                                      │ TMU State
 ──────┴─────────────────────────────────────────────┴──────────────────────
 ```
 
-### TMU 쓰기 동작 (명령어 16-18)
+### TMU 쓰기 동작 (명령어 15-17)
 
 ```
-명령어 16: mov tmud, rf12   (Prepare write data)
-명령어 17: mov tmua, rf5    (Trigger write to address)
-명령어 18: tmuwt rf0        (Wait for all writes to complete)
+명령어 15: mov tmud, rf12   (Prepare write data)
+명령어 16: mov tmua, rf5    (Trigger write to address)
+명령어 17: tmuwt rf0        (Wait for all writes to complete)
 ```
 
 **중요: TMUD와 TMUA는 반드시 별도 명령어로!**
@@ -571,10 +573,10 @@ Cycle │ Action                                      │ TMU State
 
 ✅ 올바른 방법 (순차적으로 쓰기):
 ┌────────────────────────────────────────┐
-│  명령어 16: mov tmud, rf12             │  ← 데이터 준비
+│  명령어 15: mov tmud, rf12             │  ← 데이터 준비
 └────────────────────────────────────────┘
 ┌────────────────────────────────────────┐
-│  명령어 17: mov tmua, rf5              │  ← 주소 지정하면 쓰기 시작
+│  명령어 16: mov tmua, rf5              │  ← 주소 지정하면 쓰기 시작
 └────────────────────────────────────────┘
 ```
 
@@ -635,36 +637,36 @@ Cycle │ Action                                      │ TMU State
 ┌─────────────────────────────────────────────────────────────────┐
 │ 3. GPU 실행 (QPU에서)                                            │
 │    ┌─────────────────────────────────────────────────────────┐  │
-│    │ Phase 1: Setup (명령어 0-3)                              │  │
+│    │ Phase 1: Setup (명령어 0-2)                              │  │
 │    │   - Uniform 로드 (베이스 주소들)                         │  │
 │    └─────────────────────────────────────────────────────────┘  │
 │    ┌─────────────────────────────────────────────────────────┐  │
-│    │ Phase 2: Thread ID & Offset (명령어 4-6)                 │  │
+│    │ Phase 2: Thread ID & Offset (명령어 3-5)                 │  │
 │    │   - EIDX로 각 쓰레드 ID 획득                             │  │
 │    │   - Thread ID × 4 계산                                   │  │
 │    └─────────────────────────────────────────────────────────┘  │
 │    ┌─────────────────────────────────────────────────────────┐  │
-│    │ Phase 3: Address Calculation (명령어 7-9)                │  │
+│    │ Phase 3: Address Calculation (명령어 6-8)                │  │
 │    │   - 각 쓰레드의 메모리 주소 계산                         │  │
 │    │   - Base + Offset                                        │  │
 │    └─────────────────────────────────────────────────────────┘  │
 │    ┌─────────────────────────────────────────────────────────┐  │
-│    │ Phase 4: Memory Read (명령어 10-14)                      │  │
+│    │ Phase 4: Memory Read (명령어 9-13)                       │  │
 │    │   - TMU를 통한 input_a, input_b 읽기                     │  │
 │    │   - 각 쓰레드가 자신의 요소 로드                         │  │
 │    └─────────────────────────────────────────────────────────┘  │
 │    ┌─────────────────────────────────────────────────────────┐  │
-│    │ Phase 5: Computation (명령어 15)                         │  │
+│    │ Phase 5: Computation (명령어 14)                         │  │
 │    │   - 16개 쓰레드가 병렬로 덧셈 수행                       │  │
 │    │   - 단일 클럭에 16개 ADD 동시 실행!                      │  │
 │    └─────────────────────────────────────────────────────────┘  │
 │    ┌─────────────────────────────────────────────────────────┐  │
-│    │ Phase 6: Memory Write (명령어 16-18)                     │  │
+│    │ Phase 6: Memory Write (명령어 15-17)                     │  │
 │    │   - TMU를 통한 output 쓰기                               │  │
 │    │   - 모든 쓰기 완료 대기 (tmuwt)                          │  │
 │    └─────────────────────────────────────────────────────────┘  │
 │    ┌─────────────────────────────────────────────────────────┐  │
-│    │ Phase 7: Cleanup (명령어 19-23)                          │  │
+│    │ Phase 7: Cleanup (명령어 18-20)                          │  │
 │    │   - NOP 지연                                             │  │
 │    │   - 쓰레드 스위치 (thrsw)                                │  │
 │    │   - 프로그램 종료                                        │  │
@@ -717,7 +719,7 @@ Cycle │ Action                                      │ TMU State
 - Offset은 GPU 가상 주소로 사용
 
 ### 5. 성능 특성
-- **총 24개 명령어**로 16개 요소 처리
+- **총 21개 명령어**로 16개 요소 처리
 - 루프 언롤링 대신 SIMD 병렬 처리
 - TMU 레이턴시를 숨기기 위한 명령어 배치
 
