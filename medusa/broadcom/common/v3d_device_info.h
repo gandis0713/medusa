@@ -28,13 +28,15 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/**
- * Struct for tracking features of the V3D chip across driver and compiler.
- */
-struct v3d_device_info {
+    /**
+     * Struct for tracking features of the V3D chip across driver and compiler.
+     */
+    struct v3d_device_info
+    {
         /** Simple V3D version: major * 10 + minor */
         uint8_t ver;
 
@@ -72,38 +74,38 @@ struct v3d_device_info {
 
         /** Minimum size for a buffer storing the Control List Executor (CLE) */
         uint32_t cle_buffer_min_size;
-};
+    };
 
 /* TFU has a 64-bytes readhead. To avoid the unit reading unmaped memory
  * we need to overallocate buffers that could be read by the TFU.
  */
 #define V3D_TFU_READAHEAD_SIZE 64
 
-typedef int (*v3d_ioctl_fun)(int fd, unsigned long request, void *arg);
+    typedef int (*v3d_ioctl_fun)(int fd, unsigned long request, void* arg);
 
-bool
-v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun fun);
+    bool
+    v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun fun);
 
-static inline bool
-v3d_device_has_draw_index(const struct v3d_device_info *devinfo)
-{
+    static inline bool
+    v3d_device_has_draw_index(const struct v3d_device_info* devinfo)
+    {
         return devinfo->ver > 71 || (devinfo->ver == 71 && devinfo->rev >= 10);
-}
+    }
 
-static inline bool
-v3d_device_has_unpack_sat(const struct v3d_device_info *devinfo)
-{
+    static inline bool
+    v3d_device_has_unpack_sat(const struct v3d_device_info* devinfo)
+    {
         return devinfo->ver > 45 || (devinfo->ver == 45 && devinfo->rev >= 7);
-}
+    }
 
-static inline bool
-v3d_device_has_unpack_max0(const struct v3d_device_info *devinfo)
-{
+    static inline bool
+    v3d_device_has_unpack_max0(const struct v3d_device_info* devinfo)
+    {
         return devinfo->ver > 71 ||
                (devinfo->ver == 71 &&
                 (devinfo->rev >= 7 ||
                  (devinfo->rev == 6 && devinfo->compat_rev >= 4)));
-}
+    }
 
 #ifdef __cplusplus
 }
