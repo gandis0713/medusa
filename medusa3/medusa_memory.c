@@ -14,28 +14,28 @@
 
 // static
 
-static void medusa_memory_init(struct medusa_memory* bo, struct medusa_device* device, uint32_t handle, uint32_t size, uint32_t offset, const char* name)
+static void medusa_memory_init(struct medusa_memory* memory, struct medusa_device* device, uint32_t handle, uint32_t size, uint32_t offset, const char* name)
 {
-    bo->device = device;
-    bo->handle = handle;
-    bo->size = size;
-    bo->offset = offset;
-    bo->map_size = 0;
-    bo->map = NULL;
-    bo->name = name;
+    memory->device = device;
+    memory->handle = handle;
+    memory->size = size;
+    memory->offset = offset;
+    memory->map_size = 0;
+    memory->map = NULL;
+    memory->name = name;
 }
 
-static bool medusa_memory_map_async(struct medusa_memory* bo, uint32_t size)
+static bool medusa_memory_map_async(struct medusa_memory* memory, uint32_t size)
 {
-    assert(bo != NULL && size <= bo->size);
+    assert(memory != NULL && size <= memory->size);
 
-    if (bo->map)
-        return (bool)bo->map;
+    if (memory->map)
+        return (bool)memory->map;
 
     struct drm_v3d_mmap_bo map;
     memset(&map, 0, sizeof(map));
-    map.handle = bo->handle;
-    int ret = v3d_ioctl(bo->device->pdevice->render_fd,
+    map.handle = memory->handle;
+    int ret = v3d_ioctl(memory->device->pdevice->render_fd,
                         DRM_IOCTL_V3D_MMAP_BO, &map);
     if (ret != 0)
     {
@@ -43,17 +43,17 @@ static bool medusa_memory_map_async(struct medusa_memory* bo, uint32_t size)
         return false;
     }
 
-    bo->map = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                   bo->device->pdevice->render_fd, map.offset);
-    if (bo->map == MAP_FAILED)
+    memory->map = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED,
+                       memory->device->pdevice->render_fd, map.offset);
+    if (memory->map == MAP_FAILED)
     {
         mesa_loge("mmap of bo %d (offset 0x%016llx, size %d) failed\n",
-                  bo->handle, (long long)map.offset, (uint32_t)bo->size);
+                  memory->handle, (long long)map.offset, (uint32_t)memory->size);
         return false;
     }
-    // VG(VALGRIND_MALLOCLIKE_BLOCK(bo->map, bo->size, 0, false));
+    // VG(VALGRIND_MALLOCLIKE_BLOCK(memory->map, memory->size, 0, false));
 
-    bo->map_size = size;
+    memory->map_size = size;
 
     return true;
 }
@@ -79,8 +79,8 @@ struct medusa_memory* medusa_memory_alloc(struct medusa_device* device, uint32_t
         return NULL;
     }
 
-    struct medusa_memory* bo = (struct medusa_memory*)malloc(sizeof(struct medusa_memory));
-    if (!bo)
+    struct medusa_memory* memory = (struct medusa_memory*)malloc(sizeof(struct medusa_memory));
+    if (!memory)
         return NULL;
 
     assert(create.offset % PAGE_SIZE == 0);
@@ -88,26 +88,26 @@ struct medusa_memory* medusa_memory_alloc(struct medusa_device* device, uint32_t
 
     mesa_logi("  BO created: handle=%u, size=%u, offset=%u", create.handle, create.size, create.offset);
 
-    medusa_memory_init(bo, device, create.handle, create.size, create.offset, name);
+    medusa_memory_init(memory, device, create.handle, create.size, create.offset, name);
 
-    return bo;
+    return memory;
 }
 
-bool medusa_memory_free(struct medusa_memory* bo)
+bool medusa_memory_free(struct medusa_memory* memory)
 {
-    if (!bo)
+    if (!memory)
     {
         mesa_loge("medusa_memory is NULL");
         return false;
     }
 
-    if (bo->map)
+    if (memory->map)
     {
-        medusa_memory_unmap(bo);
+        medusa_memory_unmap(memory);
     }
 
-    int render_fd = bo->device->pdevice->render_fd;
-    uint32_t handle = bo->handle;
+    int render_fd = memory->device->pdevice->render_fd;
+    uint32_t handle = memory->handle;
     /* Our BO structs are stored in a sparse array in the physical device,
      * so we don't want to free the BO pointer, instead we want to reset it
      * to 0, to signal that array entry as being free.
@@ -116,7 +116,7 @@ bool medusa_memory_free(struct medusa_memory* bo)
      * otherwise there is a chance the application creates another BO in a
      * different thread and gets the same array entry, causing a race.
      */
-    memset(bo, 0, sizeof(*bo));
+    memset(memory, 0, sizeof(*memory));
 
     struct drm_gem_close c;
     memset(&c, 0, sizeof(c));
@@ -131,37 +131,37 @@ bool medusa_memory_free(struct medusa_memory* bo)
     // TODO: if use sparse array, do not free bo pointer
     if (true)
     {
-        free(bo);
+        free(memory);
     }
 
     return true;
 }
 
-bool medusa_memory_wait(struct medusa_memory* bo, uint64_t timeout_ns)
+bool medusa_memory_wait(struct medusa_memory* memory, uint64_t timeout_ns)
 {
     struct drm_v3d_wait_bo wait = {
-        .handle = bo->handle,
+        .handle = memory->handle,
         .timeout_ns = timeout_ns,
     };
-    return v3d_ioctl(bo->device->pdevice->render_fd,
+    return v3d_ioctl(memory->device->pdevice->render_fd,
                      DRM_IOCTL_V3D_WAIT_BO, &wait) == 0;
 }
 
-bool medusa_memory_map(struct medusa_memory* bo, uint32_t size)
+bool medusa_memory_map(struct medusa_memory* memory, uint32_t size)
 {
-    if (!medusa_memory_map_async(bo, size))
+    if (!medusa_memory_map_async(memory, size))
     {
         return false;
     }
 
-    return medusa_memory_wait(bo, 0);
+    return medusa_memory_wait(memory, 0);
 }
 
-void medusa_memory_unmap(struct medusa_memory* bo)
+void medusa_memory_unmap(struct medusa_memory* memory)
 {
-    assert(bo && bo->map && bo->map_size > 0);
+    assert(memory && memory->map && memory->map_size > 0);
 
-    munmap(bo->map, bo->map_size);
-    bo->map = NULL;
-    bo->map_size = 0;
+    munmap(memory->map, memory->map_size);
+    memory->map = NULL;
+    memory->map_size = 0;
 }

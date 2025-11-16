@@ -33,10 +33,10 @@ extern "C"
     };
 
     struct medusa_memory* medusa_memory_alloc(struct medusa_device* dev, uint32_t size, const char* name);
-    bool medusa_memory_free(struct medusa_memory* bo);
-    bool medusa_memory_wait(struct medusa_memory* bo, uint64_t timeout_ns);
-    bool medusa_memory_map(struct medusa_memory* bo, uint32_t size);
-    void medusa_memory_unmap(struct medusa_memory* bo);
+    bool medusa_memory_free(struct medusa_memory* memory);
+    bool medusa_memory_wait(struct medusa_memory* memory, uint64_t timeout_ns);
+    bool medusa_memory_map(struct medusa_memory* memory, uint32_t size);
+    void medusa_memory_unmap(struct medusa_memory* memory);
 
 #ifdef __cplusplus
 }

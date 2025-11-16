@@ -36,7 +36,7 @@ struct medusa_memory* medusa_device_create_buffer(struct medusa_device* device, 
     return medusa_memory_alloc(device, size, name);
 }
 
-void medusa_device_destroy_buffer(struct medusa_device* device, struct medusa_memory* bo)
+void medusa_device_destroy_buffer(struct medusa_device* device, struct medusa_memory* memory)
 {
-    medusa_memory_free(bo);
+    medusa_memory_free(memory);
 }
