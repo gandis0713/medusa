@@ -8,4 +8,6 @@ project(
 
 # Add subdirectories
 add_subdirectory(medusa)
+# add_subdirectory(medusa2)
+add_subdirectory(medusa3)
 add_subdirectory(sample)
