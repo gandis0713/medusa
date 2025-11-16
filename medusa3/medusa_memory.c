@@ -1,4 +1,4 @@
-#include "medusa_buffer.h"
+#include "medusa_memory.h"
 
 #include "drm-uapi/v3d_drm.h"
 #include "u_math.h"
@@ -14,7 +14,7 @@
 
 // static
 
-static void medusa_buffer_init(struct medusa_buffer* bo, struct medusa_device* device, uint32_t handle, uint32_t size, uint32_t offset, const char* name)
+static void medusa_memory_init(struct medusa_memory* bo, struct medusa_device* device, uint32_t handle, uint32_t size, uint32_t offset, const char* name)
 {
     bo->device = device;
     bo->handle = handle;
@@ -25,7 +25,7 @@ static void medusa_buffer_init(struct medusa_buffer* bo, struct medusa_device* d
     bo->name = name;
 }
 
-static bool medusa_buffer_map_async(struct medusa_buffer* bo, uint32_t size)
+static bool medusa_memory_map_async(struct medusa_memory* bo, uint32_t size)
 {
     assert(bo != NULL && size <= bo->size);
 
@@ -58,9 +58,9 @@ static bool medusa_buffer_map_async(struct medusa_buffer* bo, uint32_t size)
     return true;
 }
 
-struct medusa_buffer* medusa_buffer_alloc(struct medusa_device* device, uint32_t size, const char* name)
+struct medusa_memory* medusa_memory_alloc(struct medusa_device* device, uint32_t size, const char* name)
 {
-    mesa_logi("medusa_buffer_alloc: size=%u, name=%s", size, name);
+    mesa_logi("medusa_memory_alloc: size=%u, name=%s", size, name);
     size = align(size, PAGE_SIZE);
     mesa_logi("  aligned size=%u", size);
 
@@ -79,7 +79,7 @@ struct medusa_buffer* medusa_buffer_alloc(struct medusa_device* device, uint32_t
         return NULL;
     }
 
-    struct medusa_buffer* bo = (struct medusa_buffer*)malloc(sizeof(struct medusa_buffer));
+    struct medusa_memory* bo = (struct medusa_memory*)malloc(sizeof(struct medusa_memory));
     if (!bo)
         return NULL;
 
@@ -88,22 +88,22 @@ struct medusa_buffer* medusa_buffer_alloc(struct medusa_device* device, uint32_t
 
     mesa_logi("  BO created: handle=%u, size=%u, offset=%u", create.handle, create.size, create.offset);
 
-    medusa_buffer_init(bo, device, create.handle, create.size, create.offset, name);
+    medusa_memory_init(bo, device, create.handle, create.size, create.offset, name);
 
     return bo;
 }
 
-bool medusa_buffer_free(struct medusa_buffer* bo)
+bool medusa_memory_free(struct medusa_memory* bo)
 {
     if (!bo)
     {
-        mesa_loge("medusa_buffer is NULL");
+        mesa_loge("medusa_memory is NULL");
         return false;
     }
 
     if (bo->map)
     {
-        medusa_buffer_unmap(bo);
+        medusa_memory_unmap(bo);
     }
 
     int render_fd = bo->device->pdevice->render_fd;
@@ -137,7 +137,7 @@ bool medusa_buffer_free(struct medusa_buffer* bo)
     return true;
 }
 
-bool medusa_buffer_wait(struct medusa_buffer* bo, uint64_t timeout_ns)
+bool medusa_memory_wait(struct medusa_memory* bo, uint64_t timeout_ns)
 {
     struct drm_v3d_wait_bo wait = {
         .handle = bo->handle,
@@ -147,17 +147,17 @@ bool medusa_buffer_wait(struct medusa_buffer* bo, uint64_t timeout_ns)
                      DRM_IOCTL_V3D_WAIT_BO, &wait) == 0;
 }
 
-bool medusa_buffer_map(struct medusa_buffer* bo, uint32_t size)
+bool medusa_memory_map(struct medusa_memory* bo, uint32_t size)
 {
-    if (!medusa_buffer_map_async(bo, size))
+    if (!medusa_memory_map_async(bo, size))
     {
         return false;
     }
 
-    return medusa_buffer_wait(bo, 0);
+    return medusa_memory_wait(bo, 0);
 }
 
-void medusa_buffer_unmap(struct medusa_buffer* bo)
+void medusa_memory_unmap(struct medusa_memory* bo)
 {
     assert(bo && bo->map && bo->map_size > 0);
 

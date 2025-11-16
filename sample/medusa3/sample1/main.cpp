@@ -1,9 +1,9 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 
-#include "medusa_buffer.h"
 #include "medusa_device.h"
 #include "medusa_instance.h"
+#include "medusa_memory.h"
 #include "medusa_physical_device.h"
 
 int main(int argc, char** argv)
@@ -33,7 +33,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    struct medusa_buffer* buffer = medusa_device_create_buffer(device, 1024 * 1024, "SampleBuffer");
+    struct medusa_memory* buffer = medusa_device_create_buffer(device, 1024 * 1024, "SampleBuffer");
     if (!buffer)
     {
         spdlog::error("Failed to create buffer object");
@@ -42,7 +42,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    bool result = medusa_buffer_map(buffer, 1024 * 1024);
+    bool result = medusa_memory_map(buffer, 1024 * 1024);
     if (!result)
     {
         spdlog::error("Failed to map buffer object");

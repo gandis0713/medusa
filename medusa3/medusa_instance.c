@@ -187,8 +187,6 @@ struct medusa_instance* medusa_instance_alloc()
 
     enumerate_physical_devices(instance);
 
-    print_memory_info();
-
     return instance;
 }
 

@@ -15,7 +15,7 @@ extern "C"
 #endif
 
     struct medusa_device;
-    struct medusa_buffer
+    struct medusa_memory
     {
         struct medusa_device* device;
 
@@ -32,11 +32,11 @@ extern "C"
         const char* name; // 디버깅용 이름
     };
 
-    struct medusa_buffer* medusa_buffer_alloc(struct medusa_device* dev, uint32_t size, const char* name);
-    bool medusa_buffer_free(struct medusa_buffer* bo);
-    bool medusa_buffer_wait(struct medusa_buffer* bo, uint64_t timeout_ns);
-    bool medusa_buffer_map(struct medusa_buffer* bo, uint32_t size);
-    void medusa_buffer_unmap(struct medusa_buffer* bo);
+    struct medusa_memory* medusa_memory_alloc(struct medusa_device* dev, uint32_t size, const char* name);
+    bool medusa_memory_free(struct medusa_memory* bo);
+    bool medusa_memory_wait(struct medusa_memory* bo, uint64_t timeout_ns);
+    bool medusa_memory_map(struct medusa_memory* bo, uint32_t size);
+    void medusa_memory_unmap(struct medusa_memory* bo);
 
 #ifdef __cplusplus
 }
