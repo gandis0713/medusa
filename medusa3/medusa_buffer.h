@@ -1,7 +1,6 @@
 #ifndef MEDUSA2_BUFFER_OBJECT_H
 #define MEDUSA2_BUFFER_OBJECT_H
 
-#include "medusa_device.h"
 #include "util/list.h"
 
 #include <stdint.h>
@@ -15,7 +14,8 @@ extern "C"
 #define PAGE_SIZE 4096
 #endif
 
-    struct medusa_bo
+    struct medusa_device;
+    struct medusa_buffer
     {
         struct list_head list_link;
 
@@ -30,10 +30,10 @@ extern "C"
         const char* name; // 디버깅용 이름
     };
 
-    struct medusa_bo* medusa_bo_alloc(struct medusa_device* dev, uint32_t size, const char* name);
-    bool medusa_bo_free(struct medusa_device* dev, struct medusa_bo* bo);
-    bool medusa_bo_map(struct medusa_device* dev, struct medusa_bo* bo, uint32_t size);
-    void medusa_bo_unmap(struct medusa_device* dev, struct medusa_bo* bo);
+    struct medusa_buffer* medusa_buffer_alloc(struct medusa_device* dev, uint32_t size, const char* name);
+    bool medusa_buffer_free(struct medusa_device* dev, struct medusa_buffer* bo);
+    bool medusa_buffer_map(struct medusa_device* dev, struct medusa_buffer* bo, uint32_t size);
+    void medusa_buffer_unmap(struct medusa_device* dev, struct medusa_buffer* bo);
 
 #ifdef __cplusplus
 }

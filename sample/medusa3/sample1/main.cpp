@@ -1,8 +1,10 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 
+#include "medusa_buffer.h"
+#include "medusa_device.h"
 #include "medusa_instance.h"
-// #include "medusa_physical_device.h"
+#include "medusa_physical_device.h"
 
 int main(int argc, char** argv)
 {

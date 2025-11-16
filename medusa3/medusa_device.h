@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "medusa_buffer.h"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -12,12 +14,13 @@ extern "C"
     struct medusa_physical_device;
     struct medusa_device
     {
-        struct medusa_instance* instance;
         struct medusa_physical_device* pdevice;
     };
 
     struct medusa_device* medusa_device_alloc(struct medusa_physical_device* physical_device);
     void medusa_device_free(struct medusa_device* device);
+    struct medusa_buffer* medusa_device_create_bo(struct medusa_device* device, uint32_t size, const char* name);
+    void medusa_device_destroy_bo(struct medusa_device* device, struct medusa_buffer* bo);
 
 #ifdef __cplusplus
 }
