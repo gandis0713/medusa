@@ -1,5 +1,5 @@
-#ifndef MEDUSA2_BUFFER_OBJECT_H
-#define MEDUSA2_BUFFER_OBJECT_H
+#ifndef MEDUSA2_MEMORY_OBJECT_H
+#define MEDUSA2_MEMORY_OBJECT_H
 
 #include "util/list.h"
 
@@ -42,4 +42,4 @@ extern "C"
 }
 #endif
 
-#endif // MEDUSA2_BUFFER_OBJECT_H
+#endif // MEDUSA2_MEMORY_OBJECT_H

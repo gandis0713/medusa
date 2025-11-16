@@ -33,7 +33,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    struct medusa_memory* buffer = medusa_device_create_buffer(device, 1024 * 1024, "SampleBuffer");
+    struct medusa_memory* buffer = medusa_device_create_memory(device, 1024 * 1024, "SampleBuffer");
     if (!buffer)
     {
         spdlog::error("Failed to create buffer object");
@@ -46,7 +46,7 @@ int main(int argc, char** argv)
     if (!result)
     {
         spdlog::error("Failed to map buffer object");
-        medusa_device_destroy_buffer(device, buffer);
+        medusa_device_destroy_memory(device, buffer);
         medusa_physical_device_destroy_device(physical_device, device);
         medusa_instance_free(instance);
         return -1;
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 
     // finalize
     {
-        medusa_device_destroy_buffer(device, buffer);
+        medusa_device_destroy_memory(device, buffer);
         medusa_physical_device_destroy_device(physical_device, device);
         medusa_instance_free(instance);
     }
