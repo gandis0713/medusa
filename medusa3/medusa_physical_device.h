@@ -40,8 +40,8 @@ extern "C"
     };
 
     void medusa_physical_device_init(struct medusa_physical_device* physical_device, struct medusa_instance* instance, int32_t render_fd, int32_t primary_fd);
-    struct medusa_device* medusa_instance_create_device(struct medusa_physical_device* physical_device);
-    void medusa_instance_destroy_device(struct medusa_device* device);
+    struct medusa_device* medusa_physical_device_create_device(struct medusa_physical_device* physical_device);
+    void medusa_physical_device_destroy_device(struct medusa_physical_device* physical_device, struct medusa_device* device);
 
 #ifdef __cplusplus
 }

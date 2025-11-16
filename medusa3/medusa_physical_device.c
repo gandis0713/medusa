@@ -68,12 +68,12 @@ void medusa_physical_device_init(struct medusa_physical_device* physical_device,
     mesa_logi("  SUPPORTS_SUPER_PAGES: %s", physical_device->fetures.SUPPORTS_SUPER_PAGES ? "Yes" : "No");
 }
 
-struct medusa_device* medusa_instance_create_device(struct medusa_physical_device* physical_device)
+struct medusa_device* medusa_physical_device_create_device(struct medusa_physical_device* physical_device)
 {
     return medusa_device_alloc(physical_device);
 }
 
-void medusa_instance_destroy_device(struct medusa_device* device)
+void medusa_physical_device_destroy_device(struct medusa_physical_device* physical_device, struct medusa_device* device)
 {
     medusa_device_free(device);
 }

@@ -17,6 +17,8 @@ extern "C"
     struct medusa_device;
     struct medusa_buffer
     {
+        struct medusa_device* device;
+
         struct list_head list_link;
 
         uint32_t handle; // DRM이 할당한 고유 핸들 (ID)
@@ -31,9 +33,10 @@ extern "C"
     };
 
     struct medusa_buffer* medusa_buffer_alloc(struct medusa_device* dev, uint32_t size, const char* name);
-    bool medusa_buffer_free(struct medusa_device* dev, struct medusa_buffer* bo);
-    bool medusa_buffer_map(struct medusa_device* dev, struct medusa_buffer* bo, uint32_t size);
-    void medusa_buffer_unmap(struct medusa_device* dev, struct medusa_buffer* bo);
+    bool medusa_buffer_free(struct medusa_buffer* bo);
+    bool medusa_buffer_wait(struct medusa_buffer* bo, uint64_t timeout_ns);
+    bool medusa_buffer_map(struct medusa_buffer* bo, uint32_t size);
+    void medusa_buffer_unmap(struct medusa_buffer* bo);
 
 #ifdef __cplusplus
 }

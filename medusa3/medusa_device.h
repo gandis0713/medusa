@@ -19,8 +19,8 @@ extern "C"
 
     struct medusa_device* medusa_device_alloc(struct medusa_physical_device* physical_device);
     void medusa_device_free(struct medusa_device* device);
-    struct medusa_buffer* medusa_device_create_bo(struct medusa_device* device, uint32_t size, const char* name);
-    void medusa_device_destroy_bo(struct medusa_device* device, struct medusa_buffer* bo);
+    struct medusa_buffer* medusa_device_create_buffer(struct medusa_device* device, uint32_t size, const char* name);
+    void medusa_device_destroy_buffer(struct medusa_device* device, struct medusa_buffer* bo);
 
 #ifdef __cplusplus
 }

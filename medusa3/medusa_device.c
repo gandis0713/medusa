@@ -31,12 +31,12 @@ void medusa_device_free(struct medusa_device* device)
     free(device);
 }
 
-struct medusa_buffer* medusa_device_create_bo(struct medusa_device* device, uint32_t size, const char* name)
+struct medusa_buffer* medusa_device_create_buffer(struct medusa_device* device, uint32_t size, const char* name)
 {
     return medusa_buffer_alloc(device, size, name);
 }
 
-void medusa_device_destroy_bo(struct medusa_device* device, struct medusa_buffer* bo)
+void medusa_device_destroy_buffer(struct medusa_device* device, struct medusa_buffer* bo)
 {
-    medusa_buffer_free(device, bo);
+    medusa_buffer_free(bo);
 }
