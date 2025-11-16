@@ -84,7 +84,7 @@ list(FILTER MEDUSA_SOURCES EXCLUDE REGEX ".*/wsi_common_win32\\.c$")
 list(FILTER MEDUSA_SOURCES EXCLUDE REGEX ".*/wsi_common_metal\\.c$")
 
 # Create Vulkan ICD shared library
-add_library(medusa SHARED
+add_library(medusa STATIC
     ${MEDUSA_SOURCES}
     ${MEDUSA_HEADERS}
 )
@@ -121,7 +121,7 @@ target_include_directories(medusa
 
 # Set compile options
 target_compile_options(medusa
-    PRIVATE
+    PUBLIC
         # -Wall
         # -Werror
         # -Wno-unused-parameter
@@ -132,26 +132,26 @@ target_compile_options(medusa
 include(CheckIncludeFile)
 check_include_file(endian.h HAVE_ENDIAN_H)
 if(HAVE_ENDIAN_H)
-    target_compile_definitions(medusa PRIVATE 
+    target_compile_definitions(medusa PUBLIC 
     HAVE_ENDIAN_H)
 endif()
 
 include(CheckStructHasMember)
 check_struct_has_member("struct timespec" tv_sec "time.h" HAVE_STRUCT_TIMESPEC)
 if(HAVE_STRUCT_TIMESPEC)
-    target_compile_definitions(medusa PRIVATE HAVE_STRUCT_TIMESPEC)
+    target_compile_definitions(medusa PUBLIC HAVE_STRUCT_TIMESPEC)
 endif()
 
 # Check where major/minor are defined
 include(CheckSymbolExists)
 check_symbol_exists(major "sys/sysmacros.h" MAJOR_IN_SYSMACROS)
 if(MAJOR_IN_SYSMACROS)
-    target_compile_definitions(medusa PRIVATE MAJOR_IN_SYSMACROS)
+    target_compile_definitions(medusa PUBLIC MAJOR_IN_SYSMACROS)
 endif()
 
 check_symbol_exists(major "sys/mkdev.h" MAJOR_IN_MKDEV)
 if(MAJOR_IN_MKDEV)
-    target_compile_definitions(medusa PRIVATE MAJOR_IN_MKDEV)
+    target_compile_definitions(medusa PUBLIC MAJOR_IN_MKDEV)
 endif()
 
 # Check for secure_getenv (available with _GNU_SOURCE)
@@ -159,16 +159,16 @@ set(CMAKE_REQUIRED_DEFINITIONS "-D_GNU_SOURCE")
 check_symbol_exists(secure_getenv "stdlib.h" HAVE_SECURE_GETENV)
 unset(CMAKE_REQUIRED_DEFINITIONS)
 if(HAVE_SECURE_GETENV)
-    target_compile_definitions(medusa PRIVATE HAVE_SECURE_GETENV)
+    target_compile_definitions(medusa PUBLIC HAVE_SECURE_GETENV)
 endif()
 
 # Check for sysconf (POSIX function)
 check_symbol_exists(sysconf "unistd.h" HAVE_SYSCONF)
 if(HAVE_SYSCONF)
-    target_compile_definitions(medusa PRIVATE HAVE_SYSCONF)
+    target_compile_definitions(medusa PUBLIC HAVE_SYSCONF)
 endif()
 
-target_compile_definitions(medusa PRIVATE
+target_compile_definitions(medusa PUBLIC
     # USE_V3D_SIMULATOR
     _GNU_SOURCE
     HAVE_PTHREAD
@@ -180,7 +180,7 @@ target_compile_definitions(medusa PRIVATE
     VK_USE_PLATFORM_WAYLAND_KHR)
 
 # Link libraries
-target_link_libraries(medusa PRIVATE
+target_link_libraries(medusa PUBLIC
     ${LIBDRM_LIBRARIES}
     ${WAYLAND_CLIENT_LIBRARIES}
     ${CMAKE_DL_LIBS}
@@ -191,13 +191,6 @@ set_target_properties(medusa PROPERTIES
     OUTPUT_NAME "medusa_icd"
     C_STANDARD 11
     C_STANDARD_REQUIRED ON
-)
-
-# Generate ICD manifest JSON file
-# Use file(GENERATE) to support generator expressions
-file(GENERATE
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/medusa_icd.json
-    INPUT ${CMAKE_SOURCE_DIR}/cmake/medusa_icd.json.in
 )
 
 add_library(medusa::medusa ALIAS medusa)
