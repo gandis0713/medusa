@@ -349,6 +349,8 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
         // TMU 쓰기 준비: tmud = rf12 (덧셈 결과)
         // 읽기 때 사용했던 QPU - TMU 사이의 FIFO Buffer와는 다르다.
         // 쓰기는 QPU내부의 특수 목적 레지스터에 보관된다.
+        // 읽기(Read)와 달리 쓰기(Write) 데이터는 큐에 쌓이지 않는다.
+        // 따라서, 반드시 TMUD 쓰기 직후에 TMUA 쓰기가 짝을 이뤄야 한다.
         memset(&instr, 0, sizeof(instr));
         instr.type = V3D_QPU_INSTR_TYPE_ALU;
         instr.alu.add.op = V3D_QPU_A_MOV;
@@ -357,34 +359,34 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
         instr.alu.add.magic_write = true;
         instr.alu.mul.op = V3D_QPU_M_NOP;
         emit_qpu_instr(devinfo, &instr);
-    }
 
-    // TMU 쓰기 시작: tmua = rf5 (output[thread_id] 주소)
-    // QPU 특수 목적 레지스터에 저장된 데이터를 rf5에 저장된 output 주소에 write한다.
-    memset(&instr, 0, sizeof(instr));
-    instr.type = V3D_QPU_INSTR_TYPE_ALU;
-    instr.alu.add.op = V3D_QPU_A_MOV;
-    instr.alu.add.a.raddr = 5; // rf5 (output[thread_id] 주소)
-    instr.alu.add.waddr = V3D_QPU_WADDR_TMUA;
-    instr.alu.add.magic_write = true;
-    instr.alu.mul.op = V3D_QPU_M_NOP;
-    emit_qpu_instr(devinfo, &instr);
-
-    // TMUWT - 모든 TMU 쓰기 완료 대기
-    memset(&instr, 0, sizeof(instr));
-    instr.type = V3D_QPU_INSTR_TYPE_ALU;
-    instr.alu.add.op = V3D_QPU_A_TMUWT;
-    instr.alu.mul.op = V3D_QPU_M_NOP;
-    emit_qpu_instr(devinfo, &instr);
-
-    // NOP (tmuwt 이후)
-    for (int i = 0; i < 2; i++)
-    {
+        // TMU 쓰기 시작: tmua = rf5 (output[thread_id] 주소)
+        // QPU 특수 목적 레지스터에 저장된 데이터를 rf5에 저장된 output 주소에 write한다.
         memset(&instr, 0, sizeof(instr));
         instr.type = V3D_QPU_INSTR_TYPE_ALU;
-        instr.alu.add.op = V3D_QPU_A_NOP;
+        instr.alu.add.op = V3D_QPU_A_MOV;
+        instr.alu.add.a.raddr = 5; // rf5 (output[thread_id] 주소)
+        instr.alu.add.waddr = V3D_QPU_WADDR_TMUA;
+        instr.alu.add.magic_write = true;
         instr.alu.mul.op = V3D_QPU_M_NOP;
         emit_qpu_instr(devinfo, &instr);
+
+        // TMUWT - 모든 TMU 쓰기 완료 대기
+        memset(&instr, 0, sizeof(instr));
+        instr.type = V3D_QPU_INSTR_TYPE_ALU;
+        instr.alu.add.op = V3D_QPU_A_TMUWT;
+        instr.alu.mul.op = V3D_QPU_M_NOP;
+        emit_qpu_instr(devinfo, &instr);
+
+        // NOP (tmuwt 이후)
+        for (int i = 0; i < 2; i++)
+        {
+            memset(&instr, 0, sizeof(instr));
+            instr.type = V3D_QPU_INSTR_TYPE_ALU;
+            instr.alu.add.op = V3D_QPU_A_NOP;
+            instr.alu.mul.op = V3D_QPU_M_NOP;
+            emit_qpu_instr(devinfo, &instr);
+        }
     }
 
     // 프로그램 종료
