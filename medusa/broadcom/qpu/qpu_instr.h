@@ -40,19 +40,19 @@
 struct v3d_device_info;
 
 struct v3d_qpu_sig {
-        bool thrsw:1;
-        bool ldunif:1;
-        bool ldunifa:1;
-        bool ldunifrf:1;
-        bool ldunifarf:1;
-        bool ldtmu:1;
-        bool ldvary:1;
-        bool ldvpm:1;
-        bool ldtlb:1;
-        bool ldtlbu:1;
-        bool ucb:1;
-        bool rotate:1;
-        bool wrtmuc:1;
+        bool thrsw:1;        // Thread switch
+        bool ldunif:1;       // Load uniform
+        bool ldunifa:1;      // Load uniform address
+        bool ldunifrf:1;     // Load uniform to register file
+        bool ldunifarf:1;    // Load uniform address to register file
+        bool ldtmu:1;        // Load from TMU (Texture Memory Unit)
+        bool ldvary:1;       // Load varying
+        bool ldvpm:1;        // Load from VPM (Vertex Pipe Memory)
+        bool ldtlb:1;        // Load from TLB (Tile Buffer)
+        bool ldtlbu:1;       // Load from TLB unsigned
+        bool ucb:1;          // Uniform control bit
+        bool rotate:1;       // Rotate operation
+        bool wrtmuc:1;       // Write TMU cache
         bool small_imm_a:1; /* raddr_a (add a), since V3D 7.x */
         bool small_imm_b:1; /* raddr_b (add b) */
         bool small_imm_c:1; /* raddr_c (mul a), since V3D 7.x */
