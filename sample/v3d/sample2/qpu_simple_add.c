@@ -179,146 +179,188 @@ void generate_qpu_vector_add(const struct v3d_device_info* devinfo)
     emit_qpu_instr(devinfo, &instr);
 
     /*
-     * 16개의 쓰레드가 병렬로 각각 하나의 요소를 처리
-     * Thread 0: output[0] = input_a[0] + input_b[0]
-     * Thread 1: output[1] = input_a[1] + input_b[1]
+     * 16개의 ALU가 병렬로 각각 하나의 요소를 처리
+     * Element 0: output[0] = input_a[0] + input_b[0]
+     * Element 1: output[1] = input_a[1] + input_b[1]
      * ...
-     * Thread 15: output[15] = input_a[15] + input_b[15]
+     * Element 15: output[15] = input_a[15] + input_b[15]
      */
 
     // rf7 = EIDX (thread ID: 0~15)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
-    instr.alu.add.op = V3D_QPU_A_EIDX; // Element Index (thread ID)
-    instr.alu.add.waddr = 7;
+    instr.alu.add.op = V3D_QPU_A_EIDX; // Element Index (thread ID을 얻는 특수 op)
+    instr.alu.add.waddr = 7;           // 얻어낸 Element ID값을 rf7에 저장.
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
     emit_qpu_instr(devinfo, &instr);
 
+    /*
+     * Element ID를 2배로 변환하여 offset 계산
+     * Element 0: offset = 0
+     * Element 1: offset = 2
+     * ...
+     * Element 15: offset = 30
+     */
     // rf8 = rf7 * 2 (thread_id * 2)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_ADD;
     instr.alu.add.a.raddr = 7; // rf7
     instr.alu.add.b.raddr = 7; // rf7
-    instr.alu.add.waddr = 8;
+    instr.alu.add.waddr = 8;   // rf8에 저장
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
     emit_qpu_instr(devinfo, &instr);
 
+    /*
+     * offset을 4배로 변환하여 input_a의 주소 계산
+     * Element 0: offset = 0, input_a[0]의 offset
+     * Element 1: offset = 2, input_a[1]의 offset 주소
+     * ...
+     * Element 15: offset = 30, input_a[15]의 offset 주소
+     */
     // rf9 = rf8 * 2 = rf7 * 4 (offset in bytes)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_ADD;
     instr.alu.add.a.raddr = 8; // rf8
     instr.alu.add.b.raddr = 8; // rf8
-    instr.alu.add.waddr = 9;
+    instr.alu.add.waddr = 9;   // rf9에 저장
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
     emit_qpu_instr(devinfo, &instr);
 
-    // rf3 = rf0 + rf9 (input_a[thread_id]의 주소)
+    /*
+     * rf9에 저장된 offset으로 input_a 배열의 각 요소들의 주소를 저장
+     */
+    // rf3 = rf0 + rf9 (input_a 배열의 시작 주소 + input_a[0...15 Element]의 offset)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_ADD;
-    instr.alu.add.a.raddr = 0; // rf0 (input_a base)
-    instr.alu.add.b.raddr = 9; // rf9 (offset)
-    instr.alu.add.waddr = 3;
+    instr.alu.add.a.raddr = 0; // rf0 (input_a 배열의 시작 주소)
+    instr.alu.add.b.raddr = 9; // rf9 (input_a[0...15 Element]의 offset)
+    instr.alu.add.waddr = 3;   // rf3에 저장
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
     emit_qpu_instr(devinfo, &instr);
 
-    // rf4 = rf1 + rf9 (input_b[thread_id]의 주소)
+    /*
+     * rf9에 저장된 offset으로 input_b 배열의 각 요소들의 주소를 저장
+     */
+    // rf4 = rf1 + rf9 (input_b 배열의 시작 주소 + input_b[0...15 Element]의 offset)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_ADD;
-    instr.alu.add.a.raddr = 1; // rf1 (input_b base)
-    instr.alu.add.b.raddr = 9; // rf9 (offset)
-    instr.alu.add.waddr = 4;
+    instr.alu.add.a.raddr = 1; // rf1 (input_b 배열의 시작 주소)
+    instr.alu.add.b.raddr = 9; // rf9 (input_b[0...15 Element]의 offset)
+    instr.alu.add.waddr = 4;   // rf4에 저장
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
     emit_qpu_instr(devinfo, &instr);
 
-    // rf5 = rf2 + rf9 (output[thread_id]의 주소)
+    /*
+     * rf9에 저장된 offset으로 output 배열의 각 요소들의 주소를 저장
+     */
+    // rf5 = rf2 + rf9 (output 배열의 시작 주소 + output[0...15 Element]의 offset)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_ADD;
-    instr.alu.add.a.raddr = 2; // rf2 (output base)
-    instr.alu.add.b.raddr = 9; // rf9 (offset)
-    instr.alu.add.waddr = 5;
+    instr.alu.add.a.raddr = 2; // rf2 (output 배열의 시작 주소)
+    instr.alu.add.b.raddr = 9; // rf9 (output[0...15 Element]의 offset)
+    instr.alu.add.waddr = 5;   // rf5에 저장
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
     emit_qpu_instr(devinfo, &instr);
 
-    // TMU 읽기: input_a[thread_id]
-    memset(&instr, 0, sizeof(instr));
-    instr.type = V3D_QPU_INSTR_TYPE_ALU;
-    instr.alu.add.op = V3D_QPU_A_MOV;
-    instr.alu.add.a.raddr = 3; // rf3 (input_a[thread_id] 주소)
-    instr.alu.add.waddr = V3D_QPU_WADDR_TMUA;
-    instr.alu.add.magic_write = true;
-    instr.alu.mul.op = V3D_QPU_M_NOP;
-    emit_qpu_instr(devinfo, &instr);
+    // 메모리에서 레지스터 파일로 데이터 읽어 오기
+    {
+        // TMU 읽기: input_a[0..15]를 TMU로 읽어 온다.
+        // TMU는 데이터를 QPU - TMU 사이의 FIFO Buffer에 임시 저장한다.
+        // FIFO 버퍼는 레지스터 파일처럼 직접 주소를 지정해서 사용할 수 있는 공간이 아니다.
+        memset(&instr, 0, sizeof(instr));
+        instr.type = V3D_QPU_INSTR_TYPE_ALU;
+        instr.alu.add.op = V3D_QPU_A_MOV;
+        instr.alu.add.a.raddr = 3; // rf3 (input_a[element_id] 주소)
+        instr.alu.add.waddr = V3D_QPU_WADDR_TMUA;
+        instr.alu.add.magic_write = true;
+        instr.alu.mul.op = V3D_QPU_M_NOP;
+        emit_qpu_instr(devinfo, &instr);
 
-    // TMU 읽기: input_b[thread_id]
-    memset(&instr, 0, sizeof(instr));
-    instr.type = V3D_QPU_INSTR_TYPE_ALU;
-    instr.alu.add.op = V3D_QPU_A_MOV;
-    instr.alu.add.a.raddr = 4; // rf4 (input_b[thread_id] 주소)
-    instr.alu.add.waddr = V3D_QPU_WADDR_TMUA;
-    instr.alu.add.magic_write = true;
-    instr.alu.mul.op = V3D_QPU_M_NOP;
-    emit_qpu_instr(devinfo, &instr);
+        // TMU 읽기: input_b[0..15]를 TMU로 읽어 온다.
+        // 마찬가지로, TMU는 데이터를 QPU - TMU 사이의 FIFO Buffer에 임시 저장한다.
+        memset(&instr, 0, sizeof(instr));
+        instr.type = V3D_QPU_INSTR_TYPE_ALU;
+        instr.alu.add.op = V3D_QPU_A_MOV;
+        instr.alu.add.a.raddr = 4; // rf4 (input_b[element_id] 주소)
+        instr.alu.add.waddr = V3D_QPU_WADDR_TMUA;
+        instr.alu.add.magic_write = true;
+        instr.alu.mul.op = V3D_QPU_M_NOP;
+        emit_qpu_instr(devinfo, &instr);
 
-    // NOP (TMU 레이턴시)
-    memset(&instr, 0, sizeof(instr));
-    instr.type = V3D_QPU_INSTR_TYPE_ALU;
-    instr.alu.add.op = V3D_QPU_A_NOP;
-    instr.alu.mul.op = V3D_QPU_M_NOP;
-    emit_qpu_instr(devinfo, &instr);
+        // NOP (TMU 레이턴시, 다른 연산을 이부분에서 진행하면 효율을 높일 수 있다.)
+        // 너무 적은 시간 이후에, ldtmu를 진행하면, stall에 빠지게 된다.
+        memset(&instr, 0, sizeof(instr));
+        instr.type = V3D_QPU_INSTR_TYPE_ALU;
+        instr.alu.add.op = V3D_QPU_A_NOP;
+        instr.alu.mul.op = V3D_QPU_M_NOP;
+        emit_qpu_instr(devinfo, &instr);
 
-    // ldtmu: rf10 = input_a[thread_id]
-    memset(&instr, 0, sizeof(instr));
-    instr.type = V3D_QPU_INSTR_TYPE_ALU;
-    instr.sig.ldtmu = true;
-    instr.sig_addr = 10;
-    instr.sig_magic = false;
-    instr.alu.add.op = V3D_QPU_A_NOP;
-    instr.alu.mul.op = V3D_QPU_M_NOP;
-    emit_qpu_instr(devinfo, &instr);
+        // TMU로 input a,b를 읽어 오므로, FIF에 2개가 저장된다.
+        // 먼저 실행한 명령어 부터 순차적으로 들어오므로, a데이터가 먼저 들어온다.
+        // 따라서, ldtmu를 실행하면 먼저 input_a 데이터를 읽어온다.
+        // ldtmu: rf10 = input_a[element_id], TMU로 읽어온 데이터를 rf10에 저장
+        memset(&instr, 0, sizeof(instr));
+        instr.type = V3D_QPU_INSTR_TYPE_ALU;
+        instr.sig.ldtmu = true; // TMU로 읽어온 데이터를 저장
+        instr.sig_addr = 10;    // rf10에 저장
+        instr.sig_magic = false;
+        instr.alu.add.op = V3D_QPU_A_NOP;
+        instr.alu.mul.op = V3D_QPU_M_NOP;
+        emit_qpu_instr(devinfo, &instr);
 
-    // ldtmu: rf11 = input_b[thread_id]
-    memset(&instr, 0, sizeof(instr));
-    instr.type = V3D_QPU_INSTR_TYPE_ALU;
-    instr.sig.ldtmu = true;
-    instr.sig_addr = 11;
-    instr.sig_magic = false;
-    instr.alu.add.op = V3D_QPU_A_NOP;
-    instr.alu.mul.op = V3D_QPU_M_NOP;
-    emit_qpu_instr(devinfo, &instr);
+        // 위에서 input_a 데이터를 FIFO에서 읽어왔으므로,
+        // ldtmu를 실행하면 먼저 input_b 데이터를 읽어온다.
+        // ldtmu: rf11 = input_b[element_id], TMU로 읽어온 데이터를 rf11에 저장
+        memset(&instr, 0, sizeof(instr));
+        instr.type = V3D_QPU_INSTR_TYPE_ALU;
+        instr.sig.ldtmu = true; // TMU로 읽어온 데이터를 저장
+        instr.sig_addr = 11;    // rf11에 저장
+        instr.sig_magic = false;
+        instr.alu.add.op = V3D_QPU_A_NOP;
+        instr.alu.mul.op = V3D_QPU_M_NOP;
+        emit_qpu_instr(devinfo, &instr);
+    }
 
-    // 덧셈 수행: rf12 = rf10 + rf11
+    // 덧셈 수행
+    // rf12 = rf10 + rf11(input_a + input_b)
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_ADD;
-    instr.alu.add.a.raddr = 10; // rf10
-    instr.alu.add.b.raddr = 11; // rf11
-    instr.alu.add.waddr = 12;   // rf12
+    instr.alu.add.a.raddr = 10; // rf10 (input_a)
+    instr.alu.add.b.raddr = 11; // rf11 (input_b)
+    instr.alu.add.waddr = 12;   // rf12 (덧셈 결과)
     instr.alu.add.magic_write = false;
     instr.alu.mul.op = V3D_QPU_M_NOP;
     emit_qpu_instr(devinfo, &instr);
 
-    // TMU 쓰기: tmud = rf12 (덧셈 결과)
-    memset(&instr, 0, sizeof(instr));
-    instr.type = V3D_QPU_INSTR_TYPE_ALU;
-    instr.alu.add.op = V3D_QPU_A_MOV;
-    instr.alu.add.a.raddr = 12; // rf12 (덧셈 결과)
-    instr.alu.add.waddr = V3D_QPU_WADDR_TMUD;
-    instr.alu.add.magic_write = true;
-    instr.alu.mul.op = V3D_QPU_M_NOP;
-    emit_qpu_instr(devinfo, &instr);
+    // 덧셈 결과를 메모리에 저장하기
+    {
+        // TMU 쓰기 준비: tmud = rf12 (덧셈 결과)
+        // 읽기 때 사용했던 QPU - TMU 사이의 FIFO Buffer와는 다르다.
+        // 쓰기는 QPU내부의 특수 목적 레지스터에 보관된다.
+        memset(&instr, 0, sizeof(instr));
+        instr.type = V3D_QPU_INSTR_TYPE_ALU;
+        instr.alu.add.op = V3D_QPU_A_MOV;
+        instr.alu.add.a.raddr = 12;               // rf12 (덧셈 결과)
+        instr.alu.add.waddr = V3D_QPU_WADDR_TMUD; // QPU 특수 목적 레지스터에 보관
+        instr.alu.add.magic_write = true;
+        instr.alu.mul.op = V3D_QPU_M_NOP;
+        emit_qpu_instr(devinfo, &instr);
+    }
 
     // TMU 쓰기 시작: tmua = rf5 (output[thread_id] 주소)
+    // QPU 특수 목적 레지스터에 저장된 데이터를 rf5에 저장된 output 주소에 write한다.
     memset(&instr, 0, sizeof(instr));
     instr.type = V3D_QPU_INSTR_TYPE_ALU;
     instr.alu.add.op = V3D_QPU_A_MOV;
