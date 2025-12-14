@@ -3,8 +3,12 @@ cmake_minimum_required(VERSION 3.22)
 project(v3d_sample2
     VERSION 0.0.1
     DESCRIPTION "QPU Direct Programming Sample 2"
-    LANGUAGES C
+    LANGUAGES C CXX
 )
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB SRC_FILES
     "*.c"
